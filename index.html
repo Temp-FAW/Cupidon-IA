@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cupidon IA - Analyseur Instagram</title>
+    <style>
+        :root {
+            --primary: #ff477e;
+            --secondary: #ff7096;
+            --bg: #1a0b16;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a0b16 0%, #3a0d24 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #ff477e, #ffb3c6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #ffb3c6;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        .info-note {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 71, 126, 0.4);
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #results {
+            display: none;
+            margin-top: 30px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .score-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 71, 126, 0.2);
+        }
+
+        .score-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+            text-shadow: 0 0 10px rgba(255, 71, 126, 0.5);
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: #ddd;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .analysis-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .analysis-box h3 {
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+
+        .affection-level {
+            display: inline-block;
+            background: rgba(255, 71, 126, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: #ffb3c6;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        p.text-analysis {
+            line-height: 1.6;
+            color: #eee;
+            white-space: pre-wrap;
+        }
+
+        .improvement-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #ffb3c6;
+            margin-top: 20px;
+        }
+
+        .improvement-box h3 {
+            color: #ffb3c6;
+            margin-bottom: 10px;
+        }
+
+        .goal-selection {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .goal-selection input[type="radio"] {
+            display: none;
+        }
+
+        .goal-btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: rgba(255, 71, 126, 0.1);
+            border: 1px solid rgba(255, 71, 126, 0.4);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 0;
+            color: #fff;
+            font-weight: normal;
+        }
+
+        .goal-selection input[type="radio"]:checked+.goal-btn {
+            background: rgba(255, 71, 126, 0.6);
+            border-color: var(--primary);
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 71, 126, 0.4);
+        }
+
+        .bg-hearts { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; overflow: hidden; }
+        .bg-heart { position: absolute; bottom: -10vh; font-size: 2rem; animation: floatUp infinite linear; opacity: 0; }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-110vh) scale(1.2) rotate(360deg); opacity: 0; }
+        }
+
+        .cursor-glow { position: fixed; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255, 71, 126, 0.15) 0%, transparent 60%); border-radius: 50%; pointer-events: none; z-index: -2; transform: translate(-50%, -50%); display: none; }
+        .custom-cursor, .custom-cursor * { cursor: none !important; }
+        .cursor-arrow { position: fixed; pointer-events: none; z-index: 9999; font-size: 2rem; display: none; text-shadow: 0 0 5px rgba(255,255,255,0.5); margin-top: -10px; margin-left: -10px; }
+        .trail-heart { position: fixed; pointer-events: none; font-size: 1.2rem; z-index: 9998; animation: trailFade 1s forwards ease-out; margin-left: 5px; margin-top: 5px; }
+        @keyframes trailFade {
+            0% { opacity: 0.8; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.3) translateY(20px); }
+        }
+
+        #cupid-animation { position: fixed; top: 20%; left: -200px; font-size: 6rem; z-index: 9000; pointer-events: none; opacity: 0; filter: drop-shadow(0 0 20px rgba(255, 71, 126, 0.8)); }
+        .cupid-arrow { position: fixed; font-size: 4rem; top: calc(20% + 15px); left: -200px; z-index: 8999; pointer-events: none; opacity: 0; }
+        
+        @keyframes cupidShoot {
+            0% { left: -200px; opacity: 1; transform: rotate(10deg); }
+            30% { left: 40%; opacity: 1; transform: rotate(-5deg); }
+            45% { left: 40%; opacity: 1; transform: rotate(0deg); }
+            60% { left: 40%; opacity: 1; transform: rotate(-10deg) scaleX(-1); }
+            100% { left: -200px; opacity: 0; transform: rotate(-10deg) scaleX(-1); } 
+        }
+        @keyframes arrowFly {
+            0% { left: calc(40% + 50px); opacity: 1; }
+            95% { left: 110vw; opacity: 1; }
+            100% { left: 110vw; opacity: 0; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-hearts" id="bg-hearts"></div>
+    <div class="cursor-glow" id="cursor-glow"></div>
+    <div class="cursor-arrow" id="cursor-arrow">💘</div>
+    <div id="cupid-animation">👼</div>
+    <div class="cupid-arrow" id="cupid-arrow">➡️</div>
+
+    <h1>💘 Cupidon IA</h1>
+    <p>Analysez votre discussion Instagram pour découvrir votre compatibilité amoureuse.</p>
+
+    <div class="container">
+        <div class="form-group" style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3);">
+            <label for="apiKeyInput" style="display: flex; justify-content: space-between; align-items: center;">
+                Clé d'API Gemini (Requise) :
+                <button type="button" onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;" title="Pourquoi utiliser sa propre clé ?">❔</button>
+            </label>
+            <input type="password" id="apiKeyInput" placeholder="AIzaSy..." style="width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: white;">
+            <div class="info-note">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a> Elle sera sauvegardée sur votre navigateur.
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="fileInput" style="display: flex; justify-content: space-between; align-items: center;">
+                Fichiers d'archive Instagram (HTML) :
+                <button type="button" onclick="alert('Pour obtenir votre archive :\n1. Sur Instagram, allez dans Vos paramètres > Votre activité\n2. Télécharger vos informations > Demander un téléchargement\n3. Sélectionnez les Messages\n4. IMPORTANT : Choisissez le format HTML !\n\nUne fois l\'archive reçue et dézippée, vos discussions se trouvent dans le dossier :\nvotre_archive/messages/inbox/nom_de_la_personne/\n\nSélectionnez les fichiers .html contenus dans ce dossier.')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;" title="Comment obtenir mon archive ?">❔</button>
+            </label>
+            <input type="file" id="fileInput" accept=".html" multiple>
+            <div class="info-note">Astuce : Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers
+                (message_1.html, message_2.html...) d'un coup.</div>
+        </div>
+
+        <div class="form-group">
+            <label>Objectif d'évolution de la relation :</label>
+            <div class="goal-selection">
+                <input type="radio" id="goal-amitie" name="goal" value="amitie" checked>
+                <label for="goal-amitie" class="goal-btn">Vers l'Amitié 🤝</label>
+
+                <input type="radio" id="goal-amour" name="goal" value="amour">
+                <label for="goal-amour" class="goal-btn">Vers l'Amour ❤️</label>
+            </div>
+        </div>
+
+        <button id="analyzeBtn" onclick="startAnalysis()">Lancer l'Analyse IA 🪄</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">Lecture des fichiers en cours...</p>
+        </div>
+
+        <div id="raw-stats" style="display: none; margin-top: 20px; text-align: center; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2);">
+            <h3 style="color: #fff; margin-bottom: 15px;">📊 Statistiques de la conversation</h3>
+            <p><strong>Total de messages :</strong> <span id="stat-total">0</span></p>
+            <div style="display: flex; justify-content: space-around; margin-top: 15px;">
+                <div style="flex: 1;">
+                    <h4 id="stat-name-a" style="color: var(--primary);">Personne A</h4>
+                    <p><span id="stat-pct-a" style="font-size: 1.5rem; font-weight: bold;">0%</span> des messages</p>
+                    <p style="font-size: 1.2rem; margin-top: 5px;" id="stat-emojis-a"></p>
+                </div>
+                <div style="flex: 1;">
+                    <h4 id="stat-name-b" style="color: var(--secondary);">Personne B</h4>
+                    <p><span id="stat-pct-b" style="font-size: 1.5rem; font-weight: bold;">0%</span> des messages</p>
+                    <p style="font-size: 1.2rem; margin-top: 5px;" id="stat-emojis-b"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="results">
+            <div class="scores-grid">
+                <div class="score-card">
+                    <div class="score-label">Compatibilité Globale</div>
+                    <div class="score-value" id="res-compat">0%</div>
+                </div>
+                <div class="score-card">
+                    <div class="score-label" id="label-chance-a">Chance si A déclare</div>
+                    <div class="score-value" id="res-chance-a">0%</div>
+                </div>
+                <div class="score-card">
+                    <div class="score-label" id="label-chance-b">Chance si B déclare</div>
+                    <div class="score-value" id="res-chance-b">0%</div>
+                </div>
+                <div class="score-card" style="background: rgba(0,0,0,0.4);">
+                    <div class="score-label" id="label-orientation-a">Orientation Sexuelle</div>
+                    <div class="score-value" id="res-orientation-a" style="font-size: 2.5rem;">❓ 0%</div>
+                </div>
+                <div class="score-card" style="background: rgba(0,0,0,0.4);">
+                    <div class="score-label" id="label-orientation-b">Orientation Sexuelle</div>
+                    <div class="score-value" id="res-orientation-b" style="font-size: 2.5rem;">❓ 0%</div>
+                </div>
+            </div>
+
+            <div class="analysis-box">
+                <h3>Diagnostic de la Relation 🩺</h3>
+                <div class="affection-level" id="res-affection">Niveau d'affection</div>
+                <p class="text-analysis" id="res-analysis">Analyse en cours...</p>
+            </div>
+
+            <div class="improvement-box">
+                <h3 id="improvement-title">Conseils d'Évolution 🌱</h3>
+                <div style="margin-top: 15px;">
+                    <strong id="improvement-title-a" style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne A :</strong>
+                    <p class="text-analysis" id="improvement-content-a">Analyse en cours...</p>
+                </div>
+                <div style="margin-top: 15px;">
+                    <strong id="improvement-title-b" style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne B :</strong>
+                    <p class="text-analysis" id="improvement-content-b">Analyse en cours...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
+
+            initBackground();
+            initCursorTrail();
+        });
+
+        async function startAnalysis() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (!apiKey) {
+                alert("Veuillez entrer votre clé d'API Gemini pour lancer l'analyse.");
+                return;
+            }
+            localStorage.setItem('gemini_api_key', apiKey);
+
+            const files = document.getElementById('fileInput').files;
+            const btn = document.getElementById('analyzeBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const loadingText = document.getElementById('loadingText');
+
+            if (files.length === 0) {
+                alert("Veuillez sélectionner au moins un fichier HTML Instagram.");
+                return;
+            }
+
+            btn.disabled = true;
+            results.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                loadingText.innerText = `Lecture et fusion de ${files.length} fichier(s)...`;
+
+                let combinedChatText = "";
+                let globalNames = new Set();
+                let allMessages = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const fileContent = await files[i].text();
+                    const extractedData = extractChatData(fileContent);
+                    combinedChatText += extractedData.text + "\n";
+                    allMessages = allMessages.concat(extractedData.messages);
+                    extractedData.names.forEach(name => globalNames.add(name));
+                }
+
+                if (allMessages.length === 0) {
+                    throw new Error("Impossible de trouver des messages dans ces fichiers. Assurez-vous qu'ils proviennent bien d'Instagram.");
+                }
+
+                let personA = "Personne A";
+                let personB = "Personne B";
+                const namesArray = Array.from(globalNames);
+                if (namesArray.length >= 2) {
+                    personA = namesArray[0];
+                    personB = namesArray[1];
+                } else if (namesArray.length === 1) {
+                    personA = namesArray[0];
+                }
+
+                displayRawStats(allMessages, personA, personB);
+
+                if (combinedChatText.length > 500000) {
+                    combinedChatText = combinedChatText.substring(0, 500000);
+                }
+
+                const goalSelected = document.querySelector('input[name="goal"]:checked').value;
+                const chatData = {
+                    text: combinedChatText,
+                    personA: personA,
+                    personB: personB,
+                    goal: goalSelected === 'amitie' ? 'Amitié' : 'Amour'
+                };
+
+                loadingText.innerText = `Analyse en cours pour ${personA} et ${personB}... 🤔 (Cela peut prendre 10 à 30 secondes)`;
+                const aiResult = await callGeminiAPI(chatData);
+
+                displayResults(aiResult, chatData);
+
+                loading.style.display = 'none';
+                results.style.display = 'block';
+                btn.disabled = false;
+                
+                playCupidAnimation();
+
+            } catch (error) {
+                console.error("Erreur dans startAnalysis :", error);
+                alert("Une erreur est survenue :\n" + error.message);
+                loading.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        function playCupidAnimation() {
+            const cupid = document.getElementById('cupid-animation');
+            const arrow = document.getElementById('cupid-arrow');
+            
+            cupid.style.animation = 'none';
+            arrow.style.animation = 'none';
+            void cupid.offsetWidth; 
+            
+            cupid.style.animation = 'cupidShoot 3s ease-in-out forwards';
+            setTimeout(() => {
+                arrow.style.animation = 'arrowFly 1.5s linear forwards';
+            }, 1200);
+        }
+
+        function initBackground() {
+            const container = document.getElementById('bg-hearts');
+            const heartsCount = 20;
+            const emojis = ['❤️', '💖', '✨', '💕', '🥰', '👼'];
+            for(let i=0; i<heartsCount; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'bg-heart';
+                heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                heart.style.animationDelay = (Math.random() * 10) + 's';
+                heart.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                container.appendChild(heart);
+            }
+        }
+
+        function initCursorTrail() {
+            if (window.matchMedia("(pointer: coarse)").matches) return; 
+            
+            const cursor = document.getElementById('cursor-arrow');
+            const glow = document.getElementById('cursor-glow');
+            cursor.style.display = 'block';
+            if (glow) glow.style.display = 'block';
+            document.body.classList.add('custom-cursor');
+
+            let lastTrailTime = 0;
+            document.addEventListener('mousemove', (e) => {
+                requestAnimationFrame(() => {
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
+                    if (glow) {
+                        glow.style.left = e.clientX + 'px';
+                        glow.style.top = e.clientY + 'px';
+                    }
+                });
+                
+                const now = Date.now();
+                if (now - lastTrailTime > 30) {
+                    lastTrailTime = now;
+                    const trail = document.createElement('div');
+                    trail.className = 'trail-heart';
+                    trail.textContent = ['❤️', '💖', '💕'][Math.floor(Math.random() * 3)];
+                    trail.style.left = e.clientX + 'px';
+                    trail.style.top = e.clientY + 'px';
+                    document.body.appendChild(trail);
+                    setTimeout(() => trail.remove(), 1000);
+                }
+            });
+        }
+
+        function displayRawStats(allMessages, personA, personB) {
+            let countA = 0, countB = 0;
+            let emojisA = {}, emojisB = {};
+            const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu;
+
+            allMessages.forEach(msg => {
+                const isA = msg.author === personA;
+                if (isA) countA++;
+                else countB++;
+
+                let cleanText = msg.text.replace(/\[(?:REACTION|Réactions|A réagi).*?\]/gi, '');
+
+                const emojis = cleanText.match(emojiRegex) || [];
+                emojis.forEach(e => {
+                    if (!['♤', '♡', '♢', '♧', '️'].includes(e)) {
+                        if (isA) emojisA[e] = (emojisA[e] || 0) + 1;
+                        else emojisB[e] = (emojisB[e] || 0) + 1;
+                    }
+                });
+            });
+
+            const getTop3 = (emojiMap) => {
+                return Object.entries(emojiMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(e => e[0])
+                    .join(' ') || "";
+            };
+
+            const total = countA + countB || 1;
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-name-a').innerText = personA;
+            document.getElementById('stat-name-b').innerText = personB;
+            document.getElementById('stat-pct-a').innerText = Math.round((countA / total) * 100) + "%";
+            document.getElementById('stat-pct-b').innerText = Math.round((countB / total) * 100) + "%";
+            document.getElementById('stat-emojis-a').innerText = getTop3(emojisA);
+            document.getElementById('stat-emojis-b').innerText = getTop3(emojisB);
+            
+            document.getElementById('raw-stats').style.display = 'block';
+        }
+
+        function extractChatData(htmlString) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+            const messageBlocks = doc.querySelectorAll('.pam._3-95._2ph-._a6-g');
+
+            let chatText = "";
+            let messages = [];
+            let names = new Set();
+
+            Array.from(messageBlocks).forEach(block => {
+                const authorEl = block.querySelector('h2');
+                const contentContainer = block.querySelector('._a6-p');
+
+                if (authorEl && contentContainer) {
+                    const author = authorEl.innerText.trim();
+                    const clone = contentContainer.cloneNode(true);
+                    
+                    let reactionsText = "";
+                    const reactionLists = clone.querySelectorAll('ul._a6-q');
+                    reactionLists.forEach(ul => {
+                        reactionsText += ` [REACTION: ${ul.innerText.replace(/\n/g, ' ').trim()}]`;
+                        ul.remove(); 
+                    });
+                    
+                    let rawText = clone.innerText.trim();
+                    
+                    if (rawText.match(/^Reacted\s(.*?)\sto your message|^a réagi\s(.*?)\sà votre message/i)) {
+                        const emoji = rawText.replace(/Reacted\s|\sto your message|a réagi\s|\sà votre message/gi, '').trim();
+                        rawText = `[A réagi avec ${emoji}]`;
+                    } else if (rawText.match(/^Liked a message|^A aimé un message/gi)) {
+                        rawText = `[A liké le message]`;
+                    }
+                    
+                    let finalContent = (rawText + reactionsText).trim();
+
+                    if (finalContent !== "") {
+                        chatText += `${author}: ${finalContent}\n`;
+                        messages.push({ author: author, text: finalContent });
+                        names.add(author);
+                    }
+                }
+            });
+
+            return { text: chatText, names: names, messages: messages };
+        }
+
+        function chatTextIsEmpty(text) {
+            return text.replace(/\s/g, '').length === 0;
+        }
+
+        async function callGeminiAPI(chatData) {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+            const prompt = `Tu es un expert en psychologie comportementale et en analyse des dynamiques sociales.
+Analyse l'historique de la conversation suivante entre ${chatData.personA} et ${chatData.personB} de manière totalement objective et neutre.
+
+⚠️ IMPORTANT - REGLES DE LECTURE DU CHAT :
+- Les messages sont sous la forme "Nom: Texte".
+- Si à la fin d'un message il y a la balise "[REACTION: ❤️ NomB]", cela veut dire que *NomB* a liké/réagi au message avec cet emoji. Ce N'EST PAS l'auteur du message qui a mis cet emoji dans son texte. Ne dis en aucun cas que l'auteur "envoie des coeurs" ou utilise des emojis si c'est l'autre personne qui réagit à ses messages.
+- Les balises "[A réagi avec ...]" indiquent une interaction similaire. Sois rigoureux sur qui fait quoi.
+
+Ton rôle est d'évaluer la nature exacte de leur relation sans aucun biais positif ou négatif. Pèse à parts égales les signes d'attirance (flirt, relances, conversations profondes, compliments) et les signes de distance ou d'amitié stricte (réponses courtes, politesse, délais longs, investissement unilatéral). Observe l'équilibre de l'interaction (qui initie, qui s'investit le plus).
+
+Utilise ce barème objectif pour tes scores de pourcentage :
+- 0 à 25% : Relation distante, purement pratique, ou déséquilibre majeur (intérêt à sens unique).
+- 26 à 50% : Relation amicale et cordiale. Bonne entente platonique sans signes concrets d'ambiguïté romantique.
+- 51 à 75% : Flirt subtil à évident, ambiguïté présente, signes mutuels d'intérêt romantique ou de séduction.
+- 76 à 100% : Connexion romantique forte et assumée, amour mutuel ou dynamique de couple évidente.
+
+L'utilisateur souhaite orienter l'amélioration de cette relation vers : ${chatData.goal}.
+
+Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
+{
+  "compatibilite": entier entre 0 et 100,
+  "chance_A_declare": entier entre 0 et 100 (probabilité de succès si ${chatData.personA} fait le premier pas amoureux),
+  "chance_B_declare": entier entre 0 et 100 (probabilité de succès si ${chatData.personB} fait le premier pas amoureux),
+  "orientation_sexuelle_A": entier entre 0 et 100 (niveau de tension ou orientation sexuelle de ${chatData.personA}),
+  "emoji_orientation_A": "Un seul emoji (ex: 🏳️‍🌈, 🍆, 🍑, 👫, ❓) pour l'orientation/tension de ${chatData.personA}",
+  "orientation_sexuelle_B": entier entre 0 et 100 (niveau de tension ou orientation sexuelle de ${chatData.personB}),
+  "emoji_orientation_B": "Un seul emoji (ex: 🏳️‍🌈, 🍆, 🍑, 👫, ❓) pour l'orientation/tension de ${chatData.personB}",
+  "niveau_affection": "Texte très court (ex: 'Amitié platonique', 'Tension palpable', 'Déséquilibre')",
+  "analyse": "Paragraphe détaillé et objectif. Balance les points forts et les points faibles de l'interaction pour justifier les scores.",
+  "conseil_evolution_A": "Paragraphe expliquant ce que ${chatData.personA} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}).",
+  "conseil_evolution_B": "Paragraphe expliquant ce que ${chatData.personB} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal})."
+}
+
+Conversation :
+${chatData.text}`;
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        response_mime_type: "application/json",
+                        temperature: 0.7
+                    },
+                    safetySettings: [
+                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                let errorMsg = `Code HTTP ${response.status}`;
+                try {
+                    const errInfo = await response.json();
+                    errorMsg = errInfo.error.message || errorMsg;
+                } catch (e) {
+                }
+                throw new Error("Erreur API Gemini : " + errorMsg);
+            }
+
+            const data = await response.json();
+            let rawText = data.candidates[0].content.parts[0].text;
+
+            const startIndex = rawText.indexOf('{');
+            const endIndex = rawText.lastIndexOf('}');
+
+            if (startIndex !== -1 && endIndex !== -1) {
+                rawText = rawText.substring(startIndex, endIndex + 1);
+            }
+
+            return JSON.parse(rawText);
+        }
+
+        function displayResults(data, chatData) {
+            document.getElementById('label-chance-a').innerText = `Succès si ${chatData.personA} avoue`;
+            document.getElementById('label-chance-b').innerText = `Succès si ${chatData.personB} avoue`;
+
+            animateValue('res-compat', data.compatibilite);
+            animateValue('res-chance-a', data.chance_A_declare);
+            animateValue('res-chance-b', data.chance_B_declare);
+
+            document.getElementById('label-orientation-a').innerText = `Orientation Sexuelle (${chatData.personA})`;
+            document.getElementById('label-orientation-b').innerText = `Orientation Sexuelle (${chatData.personB})`;
+            animateOrientationValue('res-orientation-a', data.orientation_sexuelle_A || 0, data.emoji_orientation_A || '❓');
+            animateOrientationValue('res-orientation-b', data.orientation_sexuelle_B || 0, data.emoji_orientation_B || '❓');
+
+            document.getElementById('res-affection').innerText = "🔥 Niveau : " + data.niveau_affection;
+            document.getElementById('res-analysis').innerText = data.analyse;
+
+            document.getElementById('improvement-title').innerText = `Conseils d'Évolution (Vers l'${chatData.goal} ${chatData.goal === 'Amitié' ? '🤝' : '❤️'})`;
+            document.getElementById('improvement-title-a').innerText = `Pour ${chatData.personA} :`;
+            document.getElementById('improvement-content-a').innerHTML = (data.conseil_evolution_A || "").replace(/\n/g, '<br>');
+            document.getElementById('improvement-title-b').innerText = `Pour ${chatData.personB} :`;
+            document.getElementById('improvement-content-b').innerHTML = (data.conseil_evolution_B || "").replace(/\n/g, '<br>');
+        }
+
+        function animateOrientationValue(id, end, emoji, duration = 1500) {
+            const container = document.getElementById(id);
+            container.innerHTML = `<span style="display:inline-block;">${emoji}</span> <span class="number-container">0</span>%`;
+            const numberSpan = container.querySelector('.number-container');
+
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                numberSpan.innerText = Math.floor(easeOut * end);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function animateValue(id, end, duration = 1500) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                document.getElementById(id).innerHTML = Math.floor(easeOut * end) + "%";
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+    </script>
+</body>
+
+</html>
