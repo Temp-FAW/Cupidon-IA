@@ -279,38 +279,229 @@
             box-shadow: 0 0 10px rgba(255, 71, 126, 0.4);
         }
 
-        .bg-hearts { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; overflow: hidden; }
-        .bg-heart { position: absolute; bottom: -10vh; font-size: 2rem; animation: floatUp infinite linear; opacity: 0; }
+        .badge-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .badge-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .badge-emoji {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .badge-title {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .badge-desc {
+            font-size: 0.85rem;
+            color: #ddd;
+        }
+
+        .evolution-bar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            flex: 1;
+            height: 100%;
+        }
+
+        .evolution-bar {
+            width: 40px;
+            background: linear-gradient(to top, var(--secondary), var(--primary));
+            border-radius: 5px 5px 0 0;
+            transition: height 1.5s ease-out;
+            height: 0;
+            margin-bottom: 5px;
+        }
+
+        .evolution-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            text-align: center;
+            height: 20px;
+        }
+
+        .evolution-score {
+            font-weight: bold;
+            color: white;
+            opacity: 0;
+            transition: opacity 1s 1.5s;
+            margin-bottom: 5px;
+        }
+
+        .bg-hearts {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-heart {
+            position: absolute;
+            bottom: -10vh;
+            font-size: 2rem;
+            animation: floatUp infinite linear;
+            opacity: 0;
+        }
+
         @keyframes floatUp {
-            0% { transform: translateY(0) scale(0.8) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.3; }
-            90% { opacity: 0.3; }
-            100% { transform: translateY(-110vh) scale(1.2) rotate(360deg); opacity: 0; }
+            0% {
+                transform: translateY(0) scale(0.8) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 0.3;
+            }
+
+            90% {
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: translateY(-110vh) scale(1.2) rotate(360deg);
+                opacity: 0;
+            }
         }
 
-        .cursor-glow { position: fixed; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255, 71, 126, 0.15) 0%, transparent 60%); border-radius: 50%; pointer-events: none; z-index: -2; transform: translate(-50%, -50%); display: none; }
-        .custom-cursor, .custom-cursor * { cursor: none !important; }
-        .cursor-arrow { position: fixed; pointer-events: none; z-index: 9999; font-size: 2rem; display: none; text-shadow: 0 0 5px rgba(255,255,255,0.5); margin-top: -10px; margin-left: -10px; }
-        .trail-heart { position: fixed; pointer-events: none; font-size: 1.2rem; z-index: 9998; animation: trailFade 1s forwards ease-out; margin-left: 5px; margin-top: 5px; }
+        .cursor-glow {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 71, 126, 0.15) 0%, transparent 60%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -2;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .custom-cursor,
+        .custom-cursor * {
+            cursor: none !important;
+        }
+
+        .cursor-arrow {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-size: 2rem;
+            display: none;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            margin-top: -10px;
+            margin-left: -10px;
+        }
+
+        .trail-heart {
+            position: fixed;
+            pointer-events: none;
+            font-size: 1.2rem;
+            z-index: 9998;
+            animation: trailFade 1s forwards ease-out;
+            margin-left: 5px;
+            margin-top: 5px;
+        }
+
         @keyframes trailFade {
-            0% { opacity: 0.8; transform: scale(1) translateY(0); }
-            100% { opacity: 0; transform: scale(0.3) translateY(20px); }
+            0% {
+                opacity: 0.8;
+                transform: scale(1) translateY(0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(0.3) translateY(20px);
+            }
         }
 
-        #cupid-animation { position: fixed; top: 20%; left: -200px; font-size: 6rem; z-index: 9000; pointer-events: none; opacity: 0; filter: drop-shadow(0 0 20px rgba(255, 71, 126, 0.8)); }
-        .cupid-arrow { position: fixed; font-size: 4rem; top: calc(20% + 15px); left: -200px; z-index: 8999; pointer-events: none; opacity: 0; }
-        
-        @keyframes cupidShoot {
-            0% { left: -200px; opacity: 1; transform: rotate(10deg); }
-            30% { left: 40%; opacity: 1; transform: rotate(-5deg); }
-            45% { left: 40%; opacity: 1; transform: rotate(0deg); }
-            60% { left: 40%; opacity: 1; transform: rotate(-10deg) scaleX(-1); }
-            100% { left: -200px; opacity: 0; transform: rotate(-10deg) scaleX(-1); } 
+        #cupid-animation {
+            position: fixed;
+            top: 20%;
+            left: -200px;
+            font-size: 6rem;
+            z-index: 9000;
+            pointer-events: none;
+            opacity: 0;
+            filter: drop-shadow(0 0 20px rgba(255, 71, 126, 0.8));
         }
+
+        .cupid-arrow {
+            position: fixed;
+            font-size: 4rem;
+            top: calc(20% + 15px);
+            left: -200px;
+            z-index: 8999;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        @keyframes cupidShoot {
+            0% {
+                left: -200px;
+                opacity: 1;
+                transform: rotate(10deg);
+            }
+
+            30% {
+                left: 40%;
+                opacity: 1;
+                transform: rotate(-5deg);
+            }
+
+            45% {
+                left: 40%;
+                opacity: 1;
+                transform: rotate(0deg);
+            }
+
+            60% {
+                left: 40%;
+                opacity: 1;
+                transform: rotate(-10deg) scaleX(-1);
+            }
+
+            100% {
+                left: -200px;
+                opacity: 0;
+                transform: rotate(-10deg) scaleX(-1);
+            }
+        }
+
         @keyframes arrowFly {
-            0% { left: calc(40% + 50px); opacity: 1; }
-            95% { left: 110vw; opacity: 1; }
-            100% { left: 110vw; opacity: 0; }
+            0% {
+                left: calc(40% + 50px);
+                opacity: 1;
+            }
+
+            95% {
+                left: 110vw;
+                opacity: 1;
+            }
+
+            100% {
+                left: 110vw;
+                opacity: 0;
+            }
         }
     </style>
 </head>
@@ -327,21 +518,31 @@
     <p>Analysez votre discussion Instagram pour découvrir votre compatibilité amoureuse.</p>
 
     <div class="container">
-        <div class="form-group" style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3);">
+        <div class="form-group"
+            style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3);">
             <label for="apiKeyInput" style="display: flex; justify-content: space-between; align-items: center;">
                 Clé d'API Gemini (Requise) :
-                <button type="button" onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;" title="Pourquoi utiliser sa propre clé ?">❔</button>
+                <button type="button"
+                    onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')"
+                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
+                    title="Pourquoi utiliser sa propre clé ?">❔</button>
             </label>
-            <input type="password" id="apiKeyInput" placeholder="AIzaSy..." style="width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: white;">
+            <input type="password" id="apiKeyInput" placeholder="AIzaSy..."
+                style="width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: white;">
             <div class="info-note">
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a> Elle sera sauvegardée sur votre navigateur.
+                <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                    style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a>
+                Elle sera sauvegardée sur votre navigateur.
             </div>
         </div>
 
         <div class="form-group">
             <label for="fileInput" style="display: flex; justify-content: space-between; align-items: center;">
                 Fichiers d'archive Instagram (HTML) :
-                <button type="button" onclick="alert('Pour obtenir votre archive :\n1. Sur Instagram, allez dans Vos paramètres > Votre activité\n2. Télécharger vos informations > Demander un téléchargement\n3. Sélectionnez les Messages\n4. IMPORTANT : Choisissez le format HTML !\n\nUne fois l\'archive reçue et dézippée, vos discussions se trouvent dans le dossier :\nvotre_archive/messages/inbox/nom_de_la_personne/\n\nSélectionnez les fichiers .html contenus dans ce dossier.')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;" title="Comment obtenir mon archive ?">❔</button>
+                <button type="button"
+                    onclick="alert('Pour obtenir votre archive :\n1. Sur Instagram, allez dans Vos paramètres > Votre activité\n2. Télécharger vos informations > Demander un téléchargement\n3. Sélectionnez les Messages\n4. IMPORTANT : Choisissez le format HTML !\n\nUne fois l\'archive reçue et dézippée, vos discussions se trouvent dans le dossier :\nvotre_archive/messages/inbox/nom_de_la_personne/\n\nSélectionnez les fichiers .html contenus dans ce dossier.')"
+                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
+                    title="Comment obtenir mon archive ?">❔</button>
             </label>
             <div class="custom-file-wrapper">
                 <input type="file" id="fileInput" accept=".html" multiple class="hidden-file-input">
@@ -372,7 +573,8 @@
             <p id="loadingText">Lecture des fichiers en cours...</p>
         </div>
 
-        <div id="raw-stats" style="display: none; margin-top: 20px; text-align: center; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2);">
+        <div id="raw-stats"
+            style="display: none; margin-top: 20px; text-align: center; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2);">
             <h3 style="color: #fff; margin-bottom: 15px;">📊 Statistiques de la conversation</h3>
             <p><strong>Total de messages :</strong> <span id="stat-total">0</span></p>
             <div style="display: flex; justify-content: space-around; margin-top: 15px;">
@@ -419,25 +621,49 @@
                 <p class="text-analysis" id="res-analysis">Analyse en cours...</p>
             </div>
 
+            <div class="improvement-box" id="evolution-box" style="border-left-color: #4cc9f0; margin-top: 20px;">
+                <h3 style="color: #4cc9f0;">Évolution de la Relation 📈</h3>
+                <div id="evolution-container"
+                    style="display: flex; justify-content: space-around; align-items: flex-end; height: 180px; margin-top: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <!-- Evolution bars -->
+                </div>
+            </div>
+
+            <div class="improvement-box" id="badges-box"
+                style="margin-top: 20px; border: none; background: transparent; padding: 0;">
+                <h3 style="color: #ffd166; margin-bottom: 15px;">Badges Débloqués 🏆</h3>
+                <div id="badges-container" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <!-- Badges -->
+                </div>
+            </div>
+
             <div class="improvement-box">
                 <h3 id="improvement-title">Conseils d'Évolution 🌱</h3>
                 <div style="margin-top: 15px;">
-                    <strong id="improvement-title-a" style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne A :</strong>
+                    <strong id="improvement-title-a"
+                        style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne A :</strong>
                     <p class="text-analysis" id="improvement-content-a">Analyse en cours...</p>
                 </div>
                 <div style="margin-top: 15px;">
-                    <strong id="improvement-title-b" style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne B :</strong>
+                    <strong id="improvement-title-b"
+                        style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne B :</strong>
                     <p class="text-analysis" id="improvement-content-b">Analyse en cours...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer style="margin-top: 40px; margin-bottom: 20px; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 10; position: relative;">
+    <footer
+        style="margin-top: 40px; margin-bottom: 20px; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 10; position: relative;">
         Cupidon IA © 2026
-        <a href="https://github.com/Temp-FAW/Cupidon-IA" target="_blank" style="color: rgba(255, 255, 255, 0.5); transition: color 0.3s; display: flex; align-items: center; text-decoration: none;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'" title="Code source sur GitHub">
+        <a href="https://github.com/Temp-FAW/Cupidon-IA" target="_blank"
+            style="color: rgba(255, 255, 255, 0.5); transition: color 0.3s; display: flex; align-items: center; text-decoration: none;"
+            onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'"
+            title="Code source sur GitHub">
             <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                <path
+                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                </path>
             </svg>
         </a>
     </footer>
@@ -540,7 +766,7 @@
                 loading.style.display = 'none';
                 results.style.display = 'block';
                 btn.disabled = false;
-                
+
                 playCupidAnimation();
 
             } catch (error) {
@@ -554,11 +780,11 @@
         function playCupidAnimation() {
             const cupid = document.getElementById('cupid-animation');
             const arrow = document.getElementById('cupid-arrow');
-            
+
             cupid.style.animation = 'none';
             arrow.style.animation = 'none';
-            void cupid.offsetWidth; 
-            
+            void cupid.offsetWidth;
+
             cupid.style.animation = 'cupidShoot 3s ease-in-out forwards';
             setTimeout(() => {
                 arrow.style.animation = 'arrowFly 1.5s linear forwards';
@@ -569,7 +795,7 @@
             const container = document.getElementById('bg-hearts');
             const heartsCount = 20;
             const emojis = ['❤️', '💖', '✨', '💕', '🥰', '👼'];
-            for(let i=0; i<heartsCount; i++) {
+            for (let i = 0; i < heartsCount; i++) {
                 const heart = document.createElement('div');
                 heart.className = 'bg-heart';
                 heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
@@ -582,8 +808,8 @@
         }
 
         function initCursorTrail() {
-            if (window.matchMedia("(pointer: coarse)").matches) return; 
-            
+            if (window.matchMedia("(pointer: coarse)").matches) return;
+
             const cursor = document.getElementById('cursor-arrow');
             const glow = document.getElementById('cursor-glow');
             cursor.style.display = 'block';
@@ -600,13 +826,14 @@
                         glow.style.top = e.clientY + 'px';
                     }
                 });
-                
+
                 const now = Date.now();
                 if (now - lastTrailTime > 30) {
                     lastTrailTime = now;
                     const trail = document.createElement('div');
                     trail.className = 'trail-heart';
-                    trail.textContent = ['❤️', '💖', '💕'][Math.floor(Math.random() * 3)];
+                    const emojisPool = window.currentTrailEmojis || ['❤️', '💖', '💕'];
+                    trail.textContent = emojisPool[Math.floor(Math.random() * emojisPool.length)];
                     trail.style.left = e.clientX + 'px';
                     trail.style.top = e.clientY + 'px';
                     document.body.appendChild(trail);
@@ -652,7 +879,7 @@
             document.getElementById('stat-pct-b').innerText = Math.round((countB / total) * 100) + "%";
             document.getElementById('stat-emojis-a').innerText = getTop3(emojisA);
             document.getElementById('stat-emojis-b').innerText = getTop3(emojisB);
-            
+
             document.getElementById('raw-stats').style.display = 'block';
         }
 
@@ -672,23 +899,23 @@
                 if (authorEl && contentContainer) {
                     const author = authorEl.innerText.trim();
                     const clone = contentContainer.cloneNode(true);
-                    
+
                     let reactionsText = "";
                     const reactionLists = clone.querySelectorAll('ul._a6-q');
                     reactionLists.forEach(ul => {
                         reactionsText += ` [REACTION: ${ul.innerText.replace(/\n/g, ' ').trim()}]`;
-                        ul.remove(); 
+                        ul.remove();
                     });
-                    
+
                     let rawText = clone.innerText.trim();
-                    
+
                     if (rawText.match(/^Reacted\s(.*?)\sto your message|^a réagi\s(.*?)\sà votre message/i)) {
                         const emoji = rawText.replace(/Reacted\s|\sto your message|a réagi\s|\sà votre message/gi, '').trim();
                         rawText = `[A réagi avec ${emoji}]`;
                     } else if (rawText.match(/^Liked a message|^A aimé un message/gi)) {
                         rawText = `[A liké le message]`;
                     }
-                    
+
                     let finalContent = (rawText + reactionsText).trim();
 
                     if (finalContent !== "") {
@@ -733,14 +960,22 @@ Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
   "compatibilite": entier entre 0 et 100,
   "chance_A_declare": entier entre 0 et 100 (probabilité de succès si ${chatData.personA} fait le premier pas amoureux),
   "chance_B_declare": entier entre 0 et 100 (probabilité de succès si ${chatData.personB} fait le premier pas amoureux),
-  "orientation_sexuelle_A": entier entre 0 et 100 (niveau de tension ou orientation sexuelle de ${chatData.personA}),
-  "emoji_orientation_A": "Un seul emoji (ex: 🏳️‍🌈, 🍆, 🍑, 👫, ❓) pour l'orientation/tension de ${chatData.personA}",
-  "orientation_sexuelle_B": entier entre 0 et 100 (niveau de tension ou orientation sexuelle de ${chatData.personB}),
-  "emoji_orientation_B": "Un seul emoji (ex: 🏳️‍🌈, 🍆, 🍑, 👫, ❓) pour l'orientation/tension de ${chatData.personB}",
+  "orientation_sexuelle_A": entier entre 0 et 100 (pourcentage estimé de son côté LGBTQ+ ou hétéro),
+  "emoji_orientation_A": "Un emoji très clair pour son orientation romantique (ex: 🏳️‍🌈, 👭, 👬, 👫, ❓)",
+  "orientation_sexuelle_B": entier entre 0 et 100 (pourcentage estimé de son côté LGBTQ+ ou hétéro),
+  "emoji_orientation_B": "Un emoji très clair pour son orientation romantique (ex: 🏳️‍🌈, 👭, 👬, 👫, ❓)",
   "niveau_affection": "Texte très court (ex: 'Amitié platonique', 'Tension palpable', 'Déséquilibre')",
   "analyse": "Paragraphe détaillé et objectif. Balance les points forts et les points faibles de l'interaction pour justifier les scores.",
   "conseil_evolution_A": "Paragraphe expliquant ce que ${chatData.personA} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}).",
-  "conseil_evolution_B": "Paragraphe expliquant ce que ${chatData.personB} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal})."
+  "conseil_evolution_B": "Paragraphe expliquant ce que ${chatData.personB} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}).",
+  "badges": [
+    { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ultra-personnalisés selon leurs messages (ex: Le fantôme, Double-texter, etc)
+  ],
+  "evolution_temporelle": [
+    { "periode": "Début de la relation", "score_affection": entier entre 0 et 100 },
+    { "periode": "Milieu de la relation", "score_affection": entier entre 0 et 100 },
+    { "periode": "Récemment", "score_affection": entier entre 0 et 100 }
+  ]
 }
 
 Conversation :
@@ -807,6 +1042,106 @@ ${chatData.text}`;
             document.getElementById('improvement-content-a').innerHTML = (data.conseil_evolution_A || "").replace(/\n/g, '<br>');
             document.getElementById('improvement-title-b').innerText = `Pour ${chatData.personB} :`;
             document.getElementById('improvement-content-b').innerHTML = (data.conseil_evolution_B || "").replace(/\n/g, '<br>');
+
+            // Render Badges
+            const badgesContainer = document.getElementById('badges-container');
+            if (badgesContainer) {
+                badgesContainer.innerHTML = '';
+                if (data.badges && data.badges.length > 0) {
+                    data.badges.forEach(badge => {
+                        badgesContainer.innerHTML += `
+                            <div class="badge-card">
+                                <div class="badge-emoji">${badge.emoji}</div>
+                                <div class="badge-title">${badge.titre}</div>
+                                <div class="badge-desc">${badge.description}</div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            // Render Evolution
+            const evolutionContainer = document.getElementById('evolution-container');
+            if (evolutionContainer) {
+                evolutionContainer.innerHTML = '';
+                if (data.evolution_temporelle && data.evolution_temporelle.length > 0) {
+                    data.evolution_temporelle.forEach(evo => {
+                        const barId = `bar-${evo.periode.replace(/[^a-zA-Z0-9]/g, '')}`;
+                        evolutionContainer.innerHTML += `
+                            <div class="evolution-bar-container">
+                                <div class="evolution-score">${evo.score_affection}%</div>
+                                <div class="evolution-bar" id="${barId}"></div>
+                                <div class="evolution-label">${evo.periode}</div>
+                            </div>
+                        `;
+                    });
+
+                    // Animate bars
+                    setTimeout(() => {
+                        data.evolution_temporelle.forEach(evo => {
+                            const barId = `bar-${evo.periode.replace(/[^a-zA-Z0-9]/g, '')}`;
+                            const bar = document.getElementById(barId);
+                            if (bar) {
+                                bar.style.height = evo.score_affection + '%';
+                                bar.previousElementSibling.style.opacity = '1';
+                            }
+                        });
+                    }, 100);
+                }
+            }
+
+            applyTheme(data.compatibilite);
+        }
+
+        function applyTheme(score) {
+            const root = document.documentElement;
+            const bgHearts = document.getElementById('bg-hearts');
+            const cupidAnim = document.getElementById('cupid-animation');
+            const cursorArrow = document.getElementById('cursor-arrow');
+
+            bgHearts.innerHTML = '';
+
+            let themeColors = {};
+            let emojis = [];
+            let cupidEmoji = '👼';
+            let cursorEmoji = '💘';
+
+            if (score >= 70) {
+                themeColors = { primary: '#ff477e', secondary: '#ff7096', bg1: '#1a0b16', bg2: '#3a0d24' };
+                emojis = ['❤️', '💖', '✨', '💕', '🥰', '🔥'];
+                cupidEmoji = '👼';
+                cursorEmoji = '💘';
+            } else if (score >= 40) {
+                themeColors = { primary: '#ffd166', secondary: '#06d6a0', bg1: '#181e15', bg2: '#0e241e' };
+                emojis = ['🌟', '✨', '🌻', '🙌', '😊', '🤝'];
+                cupidEmoji = '🕊️';
+                cursorEmoji = '✨';
+            } else {
+                themeColors = { primary: '#4cc9f0', secondary: '#4361ee', bg1: '#07101a', bg2: '#0e1726' };
+                emojis = ['❄️', '🧊', '🌧️', '🥶', '💨', '🥀'];
+                cupidEmoji = '🧊';
+                cursorEmoji = '💧';
+            }
+
+            root.style.setProperty('--primary', themeColors.primary);
+            root.style.setProperty('--secondary', themeColors.secondary);
+            if (document.body) document.body.style.background = `linear-gradient(135deg, ${themeColors.bg1} 0%, ${themeColors.bg2} 100%)`;
+
+            if (cursorArrow) cursorArrow.textContent = cursorEmoji;
+            if (cupidAnim) cupidAnim.textContent = cupidEmoji;
+            window.currentTrailEmojis = emojis;
+
+            const heartsCount = 20;
+            for (let i = 0; i < heartsCount; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'bg-heart';
+                heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                heart.style.animationDelay = (Math.random() * 10) + 's';
+                heart.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                bgHearts.appendChild(heart);
+            }
         }
 
         function animateOrientationValue(id, end, emoji, duration = 1500) {
