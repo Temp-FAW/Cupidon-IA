@@ -563,6 +563,9 @@
 
                 <input type="radio" id="goal-amour" name="goal" value="amour">
                 <label for="goal-amour" class="goal-btn">Vers l'Amour ❤️</label>
+
+                <input type="radio" id="goal-roast" name="goal" value="roast">
+                <label for="goal-roast" class="goal-btn" style="border-color: #ff3333; color: #ff9999;">Mode Roast 😈</label>
             </div>
         </div>
 
@@ -649,6 +652,13 @@
                         style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne B :</strong>
                     <p class="text-analysis" id="improvement-content-b">Analyse en cours...</p>
                 </div>
+            </div>
+
+            <div class="improvement-box" id="messages-box" style="border-left-color: #ff7096; margin-top: 20px;">
+                <h3 style="color: #ff7096;" id="messages-title">Idées de Message/Relance (Icebreakers) 💬</h3>
+                <ul id="messages-list" style="margin-top: 15px; margin-left: 20px; color: #eee; line-height: 1.6;">
+                    <!-- Messages -->
+                </ul>
             </div>
         </div>
     </div>
@@ -751,11 +761,15 @@
                 }
 
                 const goalSelected = document.querySelector('input[name="goal"]:checked').value;
+                let finalGoal = 'Amour';
+                if (goalSelected === 'amitie') finalGoal = 'Amitié';
+                if (goalSelected === 'roast') finalGoal = 'Roast';
+                
                 const chatData = {
                     text: combinedChatText,
                     personA: personA,
                     personB: personB,
-                    goal: goalSelected === 'amitie' ? 'Amitié' : 'Amour'
+                    goal: finalGoal
                 };
 
                 loadingText.innerText = `Analyse en cours pour ${personA} et ${personB}... 🤔 (Cela peut prendre 10 à 30 secondes)`;
@@ -954,6 +968,7 @@ Utilise ce barème objectif pour tes scores de pourcentage :
 - 76 à 100% : Connexion romantique forte et assumée, amour mutuel ou dynamique de couple évidente.
 
 L'utilisateur souhaite orienter l'amélioration de cette relation vers : ${chatData.goal}.
+Si l'objectif est "Roast", L'ANALYSE DOIT ETRE SANS PITIÉ, ultra sarcastique et moqueuse. Traite-les de forceurs, moque-toi des temps de réponse ou de la friendzone apparente.
 
 Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
 {
@@ -968,6 +983,11 @@ Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
   "analyse": "Paragraphe détaillé et objectif. Balance les points forts et les points faibles de l'interaction pour justifier les scores.",
   "conseil_evolution_A": "Paragraphe expliquant ce que ${chatData.personA} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}).",
   "conseil_evolution_B": "Paragraphe expliquant ce que ${chatData.personB} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}).",
+  "idees_messages_relance": [
+    "Première idée brillante de message à envoyer pour relancer (adaptée à l'objectif : drôle, mignonne ou moqueuse)",
+    "Deuxième idée de message",
+    "Troisième idée de message"
+  ],
   "badges": [
     { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ultra-personnalisés selon leurs messages (ex: Le fantôme, Double-texter, etc)
   ],
@@ -1037,11 +1057,29 @@ ${chatData.text}`;
             document.getElementById('res-affection').innerText = "🔥 Niveau : " + data.niveau_affection;
             document.getElementById('res-analysis').innerText = data.analyse;
 
-            document.getElementById('improvement-title').innerText = `Conseils d'Évolution (Vers l'${chatData.goal} ${chatData.goal === 'Amitié' ? '🤝' : '❤️'})`;
-            document.getElementById('improvement-title-a').innerText = `Pour ${chatData.personA} :`;
+            document.getElementById('improvement-title').innerText = (chatData.goal === 'Roast') 
+                ? "Diagnostic Impitoyable (Mode Roast 😈)" 
+                : `Conseils d'Évolution (Vers l'${chatData.goal} ${chatData.goal === 'Amitié' ? '🤝' : '❤️'})`;
+            
+            document.getElementById('improvement-title-a').innerText = (chatData.goal === 'Roast') ? `Les défauts de ${chatData.personA} :` : `Pour ${chatData.personA} :`;
             document.getElementById('improvement-content-a').innerHTML = (data.conseil_evolution_A || "").replace(/\n/g, '<br>');
-            document.getElementById('improvement-title-b').innerText = `Pour ${chatData.personB} :`;
+            document.getElementById('improvement-title-b').innerText = (chatData.goal === 'Roast') ? `Les défauts de ${chatData.personB} :` : `Pour ${chatData.personB} :`;
             document.getElementById('improvement-content-b').innerHTML = (data.conseil_evolution_B || "").replace(/\n/g, '<br>');
+
+            // Render Messages
+            const messagesContainer = document.getElementById('messages-list');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+                if (data.idees_messages_relance && data.idees_messages_relance.length > 0) {
+                    messagesContainer.parentElement.style.display = 'block';
+                    document.getElementById('messages-title').innerText = (chatData.goal === 'Roast') ? "Piques à envoyer (Mode Roast) 😈" : "Idées de messages de relance (Générés par l'IA) 💬";
+                    data.idees_messages_relance.forEach(msg => {
+                        messagesContainer.innerHTML += `<li style="margin-bottom: 8px;">"${msg}"</li>`;
+                    });
+                } else {
+                    messagesContainer.parentElement.style.display = 'none';
+                }
+            }
 
             // Render Badges
             const badgesContainer = document.getElementById('badges-container');
