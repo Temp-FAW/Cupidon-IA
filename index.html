@@ -6,12 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cupidon IA - Analyseur Instagram</title>
     <style>
+        @property --primary {
+            syntax: '<color>';
+            inherits: true;
+            initial-value: #ff477e;
+        }
+
+        @property --secondary {
+            syntax: '<color>';
+            inherits: true;
+            initial-value: #ff7096;
+        }
+
+        @property --bg1 {
+            syntax: '<color>';
+            inherits: true;
+            initial-value: #1a0b16;
+        }
+
+        @property --bg2 {
+            syntax: '<color>';
+            inherits: true;
+            initial-value: #3a0d24;
+        }
+
         :root {
             --primary: #ff477e;
             --secondary: #ff7096;
+            --bg1: #1a0b16;
+            --bg2: #3a0d24;
             --bg: #1a0b16;
             --card-bg: rgba(255, 255, 255, 0.05);
             --text: #fff;
+            transition: --primary 1.5s ease-in-out, --secondary 1.5s ease-in-out, --bg1 1.5s ease-in-out, --bg2 1.5s ease-in-out;
         }
 
         * {
@@ -22,7 +49,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #1a0b16 0%, #3a0d24 100%);
+            background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
             color: var(--text);
             min-height: 100vh;
             padding: 20px;
@@ -312,6 +339,41 @@
             color: #ddd;
         }
 
+        .topic-badge {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .topic-badge:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .highlight-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #ffca3a;
+        }
+
+        .highlight-title {
+            color: #ffca3a;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .highlight-desc {
+            color: #eee;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
         .evolution-bar-container {
             display: flex;
             flex-direction: column;
@@ -565,7 +627,8 @@
                 <label for="goal-amour" class="goal-btn">Vers l'Amour ❤️</label>
 
                 <input type="radio" id="goal-roast" name="goal" value="roast">
-                <label for="goal-roast" class="goal-btn" style="border-color: #ff3333; color: #ff9999;">Mode Roast 😈</label>
+                <label for="goal-roast" class="goal-btn" style="border-color: #ff3333; color: #ff9999;">Mode Roast
+                    😈</label>
             </div>
         </div>
 
@@ -622,6 +685,23 @@
                 <h3>Diagnostic de la Relation 🩺</h3>
                 <div class="affection-level" id="res-affection">Niveau d'affection</div>
                 <p class="text-analysis" id="res-analysis">Analyse en cours...</p>
+            </div>
+
+            <div class="improvement-box" id="topics-box"
+                style="border-left-color: #06d6a0; margin-top: 20px; display: none;">
+                <h3 style="color: #06d6a0;">Principaux Sujets de Discussion 🗣️</h3>
+                <div id="topics-container" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                    <!-- Topics -->
+                </div>
+            </div>
+
+            <div class="improvement-box" id="highlights-box"
+                style="border-left-color: #ffca3a; margin-top: 20px; display: none;">
+                <h3 style="color: #ffca3a;">Moments Forts de la Relation 🌠</h3>
+                <div id="highlights-container"
+                    style="margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Highlights -->
+                </div>
             </div>
 
             <div class="improvement-box" id="evolution-box" style="border-left-color: #4cc9f0; margin-top: 20px;">
@@ -764,7 +844,7 @@
                 let finalGoal = 'Amour';
                 if (goalSelected === 'amitie') finalGoal = 'Amitié';
                 if (goalSelected === 'roast') finalGoal = 'Roast';
-                
+
                 const chatData = {
                     text: combinedChatText,
                     personA: personA,
@@ -968,7 +1048,7 @@ Utilise ce barème objectif pour tes scores de pourcentage :
 - 76 à 100% : Connexion romantique forte et assumée, amour mutuel ou dynamique de couple évidente.
 
 L'utilisateur souhaite orienter l'amélioration de cette relation vers : ${chatData.goal}.
-Si l'objectif est "Roast", L'ANALYSE DOIT ETRE SANS PITIÉ, ultra sarcastique et moqueuse. Traite-les de forceurs, moque-toi des temps de réponse ou de la friendzone apparente.
+Si l'objectif est "Roast", L'ANALYSE DOIT ÊTRE ABSOLUMENT SANS PITIÉ, ultra sarcastique, piquante et méchante. Détruis leurs egos. Fais énormément de références directes et explicites à leurs propres messages (cite texto leurs pires phrases entre guillemets, moque-toi de leurs blagues nulles, des "vus", des relances désespérées ou de leur temps de réponse désastreux). Traite-les de forceurs, humilie la friendzone apparente et sois brutalement honnête.
 
 Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
 {
@@ -979,17 +1059,24 @@ Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
   "emoji_orientation_A": "Un emoji très clair pour son orientation romantique (ex: 🏳️‍🌈, 👭, 👬, 👫, ❓)",
   "orientation_sexuelle_B": entier entre 0 et 100 (pourcentage estimé de son côté LGBTQ+ ou hétéro),
   "emoji_orientation_B": "Un emoji très clair pour son orientation romantique (ex: 🏳️‍🌈, 👭, 👬, 👫, ❓)",
-  "niveau_affection": "Texte très court (ex: 'Amitié platonique', 'Tension palpable', 'Déséquilibre')",
-  "analyse": "Paragraphe détaillé et objectif. Balance les points forts et les points faibles de l'interaction pour justifier les scores.",
-  "conseil_evolution_A": "Paragraphe expliquant ce que ${chatData.personA} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}).",
-  "conseil_evolution_B": "Paragraphe expliquant ce que ${chatData.personB} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}).",
+  "niveau_affection": "Texte très court (ex: 'Amitié platonique', 'Tension palpable', 'Déséquilibre', ou 'Friendzone intergalactique' en mode Roast)",
+  "analyse": "Paragraphe détaillé et objectif. Balance les points forts et les points faibles de l'interaction pour justifier les scores. (ATTENTION: Si mode Roast, tire à balles réelles en citant obligatoirement 2-3 extraits exacts et ridicules de leurs messages !)",
+  "conseil_evolution_A": "Paragraphe expliquant ce que ${chatData.personA} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}). (Si Roast : détruis-le/la sur son attitude pitoyable textuellement.)",
+  "conseil_evolution_B": "Paragraphe expliquant ce que ${chatData.personB} devrait faire concrètement pour faire évoluer le lien vers l'objectif (${chatData.goal}). (Si Roast : détruis-le/la sur son manque d'effort ou de charisme.)",
   "idees_messages_relance": [
-    "Première idée brillante de message à envoyer pour relancer (adaptée à l'objectif : drôle, mignonne ou moqueuse)",
+    "Première idée brillante de message à envoyer pour relancer (adaptée à l'objectif : drôle ou mignonne). (Si Roast : message toxique ou pleine d'autodérision qui empire son cas)",
     "Deuxième idée de message",
     "Troisième idée de message"
   ],
   "badges": [
-    { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ultra-personnalisés selon leurs messages (ex: Le fantôme, Double-texter, etc)
+    { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ultra-personnalisés selon leurs messages (Si Roast : badges ultra offensants basés sur leurs pires habitudes d'écriture)
+  ],
+  "sujets_conversation": [
+    "Mot-clé 1", "Mot-clé 2", "Mot-clé 3" // Identifie 4 à 8 grands sujets de discussion récurrents de leur conversation.
+  ],
+  "moments_forts": [
+    { "titre": "Ex: Le premier compliment", "description": "Brève description du contexte" },
+    { "titre": "Ex: Le fou rire sur X", "description": "Brève description du contexte" }
   ],
   "evolution_temporelle": [
     { "periode": "Début de la relation", "score_affection": entier entre 0 et 100 },
@@ -1057,10 +1144,10 @@ ${chatData.text}`;
             document.getElementById('res-affection').innerText = "🔥 Niveau : " + data.niveau_affection;
             document.getElementById('res-analysis').innerText = data.analyse;
 
-            document.getElementById('improvement-title').innerText = (chatData.goal === 'Roast') 
-                ? "Diagnostic Impitoyable (Mode Roast 😈)" 
+            document.getElementById('improvement-title').innerText = (chatData.goal === 'Roast')
+                ? "Diagnostic Impitoyable (Mode Roast 😈)"
                 : `Conseils d'Évolution (Vers l'${chatData.goal} ${chatData.goal === 'Amitié' ? '🤝' : '❤️'})`;
-            
+
             document.getElementById('improvement-title-a').innerText = (chatData.goal === 'Roast') ? `Les défauts de ${chatData.personA} :` : `Pour ${chatData.personA} :`;
             document.getElementById('improvement-content-a').innerHTML = (data.conseil_evolution_A || "").replace(/\n/g, '<br>');
             document.getElementById('improvement-title-b').innerText = (chatData.goal === 'Roast') ? `Les défauts de ${chatData.personB} :` : `Pour ${chatData.personB} :`;
@@ -1072,7 +1159,7 @@ ${chatData.text}`;
                 messagesContainer.innerHTML = '';
                 if (data.idees_messages_relance && data.idees_messages_relance.length > 0) {
                     messagesContainer.parentElement.style.display = 'block';
-                    document.getElementById('messages-title').innerText = (chatData.goal === 'Roast') ? "Piques à envoyer (Mode Roast) 😈" : "Idées de messages de relance (Générés par l'IA) 💬";
+                    document.getElementById('messages-title').innerText = (chatData.goal === 'Roast') ? "Piques à envoyer (Mode Roast) 😈" : "Idées de messages de relance 💬";
                     data.idees_messages_relance.forEach(msg => {
                         messagesContainer.innerHTML += `<li style="margin-bottom: 8px;">"${msg}"</li>`;
                     });
@@ -1095,6 +1182,41 @@ ${chatData.text}`;
                             </div>
                         `;
                     });
+                }
+            }
+
+            // Render Topics
+            const topicsContainer = document.getElementById('topics-container');
+            const topicsBox = document.getElementById('topics-box');
+            if (topicsContainer && topicsBox) {
+                topicsContainer.innerHTML = '';
+                if (data.sujets_conversation && data.sujets_conversation.length > 0) {
+                    topicsBox.style.display = 'block';
+                    data.sujets_conversation.forEach(topic => {
+                        topicsContainer.innerHTML += `<div class="topic-badge">${topic}</div>`;
+                    });
+                } else {
+                    topicsBox.style.display = 'none';
+                }
+            }
+
+            // Render Highlights
+            const highlightsContainer = document.getElementById('highlights-container');
+            const highlightsBox = document.getElementById('highlights-box');
+            if (highlightsContainer && highlightsBox) {
+                highlightsContainer.innerHTML = '';
+                if (data.moments_forts && data.moments_forts.length > 0) {
+                    highlightsBox.style.display = 'block';
+                    data.moments_forts.forEach(hl => {
+                        highlightsContainer.innerHTML += `
+                            <div class="highlight-item">
+                                <div class="highlight-title">${hl.titre}</div>
+                                <div class="highlight-desc">${hl.description}</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    highlightsBox.style.display = 'none';
                 }
             }
 
@@ -1128,10 +1250,10 @@ ${chatData.text}`;
                 }
             }
 
-            applyTheme(data.compatibilite);
+            applyTheme(data.compatibilite, chatData.goal);
         }
 
-        function applyTheme(score) {
+        function applyTheme(score, goal) {
             const root = document.documentElement;
             const bgHearts = document.getElementById('bg-hearts');
             const cupidAnim = document.getElementById('cupid-animation');
@@ -1144,7 +1266,17 @@ ${chatData.text}`;
             let cupidEmoji = '👼';
             let cursorEmoji = '💘';
 
-            if (score >= 70) {
+            if (goal === 'Roast') {
+                themeColors = { primary: '#ff3333', secondary: '#ff9900', bg1: '#1f0000', bg2: '#3d0000' };
+                emojis = ['🔥', '💀', '👿', '🧨', '🥵', '🤡'];
+                cupidEmoji = '👿';
+                cursorEmoji = '🔥';
+            } else if (score < 25) {
+                themeColors = { primary: '#ffea00', secondary: '#9d4edd', bg1: '#09080d', bg2: '#161423' };
+                emojis = ['⚡', '⛈️', '🌩️', '🚩', '⚠️', '🌪️'];
+                cupidEmoji = '🌩️';
+                cursorEmoji = '⚡';
+            } else if (score >= 65) {
                 themeColors = { primary: '#ff477e', secondary: '#ff7096', bg1: '#1a0b16', bg2: '#3a0d24' };
                 emojis = ['❤️', '💖', '✨', '💕', '🥰', '🔥'];
                 cupidEmoji = '👼';
@@ -1163,7 +1295,8 @@ ${chatData.text}`;
 
             root.style.setProperty('--primary', themeColors.primary);
             root.style.setProperty('--secondary', themeColors.secondary);
-            if (document.body) document.body.style.background = `linear-gradient(135deg, ${themeColors.bg1} 0%, ${themeColors.bg2} 100%)`;
+            root.style.setProperty('--bg1', themeColors.bg1);
+            root.style.setProperty('--bg2', themeColors.bg2);
 
             if (cursorArrow) cursorArrow.textContent = cursorEmoji;
             if (cupidAnim) cupidAnim.textContent = cupidEmoji;
