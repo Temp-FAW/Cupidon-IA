@@ -63,15 +63,46 @@
             color: #ffb3c6;
         }
 
-        input[type="file"] {
+        .hidden-file-input {
+            display: none;
+        }
+
+        .custom-file-label {
+            display: flex;
+            align-items: center;
             width: 100%;
-            padding: 12px;
+            padding: 8px;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 10px;
-            color: white;
-            font-size: 1rem;
+            cursor: pointer;
             transition: 0.3s;
+        }
+
+        .custom-file-label:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .file-btn {
+            background: rgba(255, 71, 126, 0.25);
+            border-radius: 15px;
+            color: #ffb3c6;
+            padding: 6px 16px;
+            margin-right: 15px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .custom-file-label:hover .file-btn {
+            background: rgba(255, 71, 126, 0.4);
+        }
+
+        .file-name {
+            color: #ccc;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .info-note {
@@ -312,7 +343,13 @@
                 Fichiers d'archive Instagram (HTML) :
                 <button type="button" onclick="alert('Pour obtenir votre archive :\n1. Sur Instagram, allez dans Vos paramètres > Votre activité\n2. Télécharger vos informations > Demander un téléchargement\n3. Sélectionnez les Messages\n4. IMPORTANT : Choisissez le format HTML !\n\nUne fois l\'archive reçue et dézippée, vos discussions se trouvent dans le dossier :\nvotre_archive/messages/inbox/nom_de_la_personne/\n\nSélectionnez les fichiers .html contenus dans ce dossier.')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;" title="Comment obtenir mon archive ?">❔</button>
             </label>
-            <input type="file" id="fileInput" accept=".html" multiple>
+            <div class="custom-file-wrapper">
+                <input type="file" id="fileInput" accept=".html" multiple class="hidden-file-input">
+                <label for="fileInput" class="custom-file-label">
+                    <span class="file-btn">Sélect. fichiers</span>
+                    <span class="file-name" id="fileNameDisplay">Aucun fichier choisi</span>
+                </label>
+            </div>
             <div class="info-note">Astuce : Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers
                 (message_1.html, message_2.html...) d'un coup.</div>
         </div>
@@ -396,6 +433,15 @@
         </div>
     </div>
 
+    <footer style="margin-top: 40px; margin-bottom: 20px; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 10; position: relative;">
+        Cupidon IA © 2026
+        <a href="https://github.com/Temp-FAW/Cupidon-IA" target="_blank" style="color: rgba(255, 255, 255, 0.5); transition: color 0.3s; display: flex; align-items: center; text-decoration: none;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'" title="Code source sur GitHub">
+            <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+        </a>
+    </footer>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const savedKey = localStorage.getItem('gemini_api_key');
@@ -403,6 +449,21 @@
 
             initBackground();
             initCursorTrail();
+
+            const fileInput = document.getElementById('fileInput');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            if (fileInput && fileNameDisplay) {
+                fileInput.addEventListener('change', (e) => {
+                    const files = e.target.files;
+                    if (files.length === 0) {
+                        fileNameDisplay.textContent = 'Aucun fichier choisi';
+                    } else if (files.length === 1) {
+                        fileNameDisplay.textContent = files[0].name;
+                    } else {
+                        fileNameDisplay.textContent = `${files.length} fichiers choisis`;
+                    }
+                });
+            }
         });
 
         async function startAnalysis() {
