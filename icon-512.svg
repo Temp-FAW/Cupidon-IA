@@ -1,0 +1,105 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- Dark dimensional background -->
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2a081a" />
+            <stop offset="50%" stop-color="#14040d" />
+            <stop offset="100%" stop-color="#050103" />
+        </linearGradient>
+
+        <!-- Inner Glass frame gradient -->
+        <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(255, 71, 126, 0.25)" />
+            <stop offset="100%" stop-color="rgba(157, 78, 221, 0.05)" />
+        </linearGradient>
+
+        <!-- Main Heart Gradient : Rose to Purple -->
+        <linearGradient id="heartBase" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ff477e" />
+            <stop offset="100%" stop-color="#9d4edd" />
+        </linearGradient>
+
+        <!-- Cyber Grid Gradient -->
+        <linearGradient id="circuit" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff7096" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#c77dff" stop-opacity="0.1"/>
+        </linearGradient>
+
+        <!-- Dramatic Neon Pink Drop shadow -->
+        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="15" stdDeviation="25" flood-color="#ff477e" flood-opacity="0.5" />
+            <feDropShadow dx="0" dy="5" stdDeviation="10" flood-color="#000" flood-opacity="0.8" />
+        </filter>
+
+        <!-- Glow for arrow -->
+        <filter id="goldGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="5" stdDeviation="15" flood-color="#ffea00" flood-opacity="0.6" />
+        </filter>
+
+        <!-- Inner glow/highlight for glass border -->
+        <filter id="innerGlow">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+            <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"/>
+            <feFlood flood-color="white" flood-opacity="0.5"/>
+            <feComposite in2="shadowDiff" operator="in"/>
+            <feComposite in2="SourceGraphic" operator="over"/>
+        </filter>
+    </defs>
+
+    <!-- 1. Outer Squircle background -->
+    <rect width="512" height="512" rx="115" ry="115" fill="url(#bg)" />
+
+    <!-- 2. Cyber/Circuit grid lines in background (The "IA" touch) -->
+    <g stroke="url(#circuit)" stroke-width="2" opacity="0.6">
+        <path d="M128,0 L128,512 M256,0 L256,512 M384,0 L384,512" />
+        <path d="M0,128 L512,128 M0,256 L512,256 M0,384 L512,384" />
+        
+        <!-- Tech nodes -->
+        <circle cx="256" cy="128" r="5" fill="#ff7096" opacity="0.8"/>
+        <circle cx="384" cy="256" r="4" fill="#c77dff" opacity="0.8"/>
+        <circle cx="128" cy="384" r="6" fill="#ff7096" opacity="0.8"/>
+        <circle cx="128" cy="128" r="3" fill="#c77dff" opacity="0.8"/>
+        <circle cx="384" cy="384" r="4" fill="#ff7096" opacity="0.8"/>
+    </g>
+
+    <!-- 3. Outer Glass Frame (Glassmorphism inset) -->
+    <rect x="40" y="40" width="432" height="432" rx="90" ry="90" fill="url(#glass)" stroke="rgba(255,255,255,0.2)" stroke-width="2" filter="url(#innerGlow)"/>
+
+    <!-- 4. Central Glowing Tech-Heart -->
+    <g transform="translate(100, 130) scale(13)" filter="url(#shadow)">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#heartBase)" />
+        
+        <!-- Subtle 3D inner highlight stroke inside the heart -->
+        <path d="M12 5.5C13.5 4 15 3.5 16.5 3.5 19 3.5 21 5 21 8c0 2-2 4.5-6 8L12 18.5" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.5" stroke-linecap="round"/>
+        
+        <!-- Data/circuit lines inside the heart -->
+        <path d="M7 8 L9 8 L10 10 L12 10" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M17 8 L15 8 L14 11 L12 11" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- 5. Cupid Golden Arrow crossing the center -->
+    <!-- Rotated completely dynamically -->
+    <g transform="rotate(35, 256, 256)">
+        <!-- Arrow shaft -->
+        <line x1="60" y1="256" x2="452" y2="256" stroke="#ffd166" stroke-width="12" stroke-linecap="round" filter="url(#goldGlow)" />
+        
+        <!-- Arrow Head -->
+        <polygon points="430,226 480,256 430,286" fill="#ffd166" filter="url(#goldGlow)"/>
+        
+        <!-- Arrow Feathers (Tail) -->
+        <path d="M110,256 L70,216 L40,216 L80,256 L40,296 L70,296 Z" fill="#ffea00" filter="url(#goldGlow)"/>
+        <path d="M80,256 L40,216 L10,216 L50,256 L10,296 L40,296 Z" fill="#ffea00" opacity="0.8" filter="url(#goldGlow)"/>
+    </g>
+
+    <!-- 6. Magic / Data Sparkles -->
+    <g transform="translate(350, 80) scale(3.5)" filter="url(#goldGlow)">
+        <path fill="#ffffff" d="M19 9l-1.25-2.75L15 5l2.75-1.25L19 1l1.25 2.75L23 5l-2.75 1.25L19 9z"/>
+    </g>
+    
+    <g transform="translate(110, 360) scale(2.5)" filter="url(#goldGlow)">
+        <path fill="#ffffff" d="M19 9l-1.25-2.75L15 5l2.75-1.25L19 1l1.25 2.75L23 5l-2.75 1.25L19 9z"/>
+    </g>
+
+    <!-- Tiny data dot -->
+    <circle cx="400" cy="400" r="8" fill="#ffea00" filter="url(#goldGlow)" />
+</svg>
