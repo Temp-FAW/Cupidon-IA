@@ -566,6 +566,7 @@
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -740,6 +741,12 @@
                     <!-- Messages -->
                 </ul>
             </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="shareBtn" style="background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); color: white; width: auto; padding: 15px 30px; border-radius: 50px; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2);" onclick="shareStory()" onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1)';">
+                    📸 Sauvegarder pour ma Story
+                </button>
+            </div>
         </div>
     </div>
 
@@ -759,6 +766,206 @@
     </footer>
 
     <script>
+        const SoundEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if(this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playHover() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            },
+            playClick() {
+                if (!this.ctx) this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            },
+            playShoot() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.5);
+            },
+            playSuccess() {
+                if (!this.ctx) return;
+                [440, 554.37, 659.25, 880].forEach((freq, i) => { // A major chord
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    const startTime = this.ctx.currentTime + (i * 0.1);
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.1, startTime + 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 1.5);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 1.5);
+                });
+            }
+        };
+
+        async function shareStory() {
+            SoundEngine.playClick();
+            const shareBtn = document.getElementById('shareBtn');
+            const originalText = shareBtn.innerHTML;
+            shareBtn.innerHTML = "⏳ Génération en cours...";
+            shareBtn.disabled = true;
+
+            try {
+                // Determine current colors
+                const rootFormat = getComputedStyle(document.documentElement);
+                const bg1 = rootFormat.getPropertyValue('--bg1').trim() || '#1a0b16';
+                const bg2 = rootFormat.getPropertyValue('--bg2').trim() || '#3a0d24';
+                const primary = rootFormat.getPropertyValue('--primary').trim() || '#ff477e';
+
+                // Clone results to a clean wrapper for html2canvas
+                const resultsEl = document.getElementById('results');
+                const clone = resultsEl.cloneNode(true);
+                clone.style.display = 'block';
+                clone.style.animation = 'none';
+
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.left = '-9999px';
+                wrapper.style.top = '0';
+                wrapper.style.width = '600px';
+                wrapper.style.padding = '40px';
+                wrapper.style.background = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`;
+                wrapper.style.color = '#ffffff';
+                wrapper.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                wrapper.style.borderRadius = '20px';
+
+                // Add header
+                const header = document.createElement('h1');
+                header.innerHTML = '💘 Cupidon IA';
+                header.style.textAlign = 'center';
+                header.style.marginBottom = '30px';
+                header.style.fontSize = '3rem';
+                header.style.color = primary;
+                header.style.filter = `drop-shadow(0 0 10px ${primary})`;
+                wrapper.appendChild(header);
+
+                wrapper.appendChild(clone);
+
+                // Add footer
+                const footer = document.createElement('div');
+                footer.innerHTML = 'Fais le crash-test de ta relation sur <b>temp-faw.github.io/Cupidon-IA/</b> ✨';
+                footer.style.textAlign = 'center';
+                footer.style.marginTop = '30px';
+                footer.style.fontSize = '1.1rem';
+                footer.style.color = 'rgba(255, 255, 255, 0.7)';
+                wrapper.appendChild(footer);
+
+                document.body.appendChild(wrapper);
+
+                // IMPORTANT FIX: Remove all backdrop-filters and force text colors inside clone
+                wrapper.querySelectorAll('*').forEach(el => {
+                    el.style.backdropFilter = 'none';
+                    el.style.webkitBackdropFilter = 'none';
+                    
+                    const comp = getComputedStyle(el);
+                    if (comp.color === 'rgba(0, 0, 0, 0)' || comp.color === 'transparent') {
+                        el.style.color = '#ffffff';
+                    }
+                });
+                
+                // Specific fixes for text colors that were lost
+                wrapper.querySelectorAll('.text-analysis').forEach(el => el.style.color = '#eeeeee');
+                wrapper.querySelectorAll('.score-label').forEach(el => el.style.color = '#dddddd');
+                wrapper.querySelectorAll('.highlight-desc, .badge-desc').forEach(el => el.style.color = '#dddddd');
+                
+                // Remove the button from clone
+                const clonedBtn = clone.querySelector('#shareBtn');
+                if (clonedBtn) clonedBtn.remove();
+                
+                // Capture
+                const canvas = await html2canvas(wrapper, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#000000'
+                });
+
+                document.body.removeChild(wrapper);
+
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                if (navigator.share && navigator.canShare) {
+                    try {
+                        const blob = await (await fetch(dataUrl)).blob();
+                        const file = new File([blob], 'cupidon-resultat.png', { type: 'image/png' });
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: 'Mon résultat Cupidon IA',
+                                text: 'Regarde mon analyse de conversation sur Cupidon IA ! 💘 Teste ta relation ici : https://temp-faw.github.io/Cupidon-IA/'
+                            });
+                            shareBtn.innerHTML = "✅ Partagé !";
+                            setTimeout(() => { shareBtn.innerHTML = originalText; shareBtn.disabled = false; }, 3000);
+                            return;
+                        }
+                    } catch (err) {
+                        console.log("Erreur de partage natif:", err);
+                    }
+                }
+
+                const link = document.createElement('a');
+                link.download = 'cupidon-resultat.png';
+                link.href = dataUrl;
+                link.click();
+                
+                shareBtn.innerHTML = "✅ Image téléchargée !";
+                setTimeout(() => { shareBtn.innerHTML = originalText; shareBtn.disabled = false; }, 3000);
+            } catch(e) {
+                console.error(e);
+                alert("Erreur lors de la capture de l'image.");
+                shareBtn.innerHTML = originalText;
+                shareBtn.disabled = false;
+            }
+        }
+
+        document.body.addEventListener('click', () => {
+            if(!SoundEngine.ctx) SoundEngine.init();
+        }, { once: true });
+        
+        document.addEventListener('mouseover', (e) => {
+            if(e.target.tagName === 'BUTTON' || e.target.classList.contains('goal-btn') || e.target.closest('.custom-file-label')) {
+                SoundEngine.playHover();
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             const savedKey = localStorage.getItem('gemini_api_key');
             if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
@@ -804,6 +1011,8 @@
             btn.disabled = true;
             results.style.display = 'none';
             loading.style.display = 'block';
+
+            let loadingInterval;
 
             try {
                 loadingText.innerText = `Lecture et fusion de ${files.length} fichier(s)...`;
@@ -852,8 +1061,25 @@
                     goal: finalGoal
                 };
 
-                loadingText.innerText = `Analyse en cours pour ${personA} et ${personB}... 🤔 (Cela peut prendre 10 à 30 secondes)`;
+                loadingText.innerText = `Analyse en cours pour ${personA} et ${personB}... 🤔`;
+                const loadingPhrases = [
+                    "Comptage des 'vus'...",
+                    "Consultation des oracles...",
+                    "Analyse de vos blagues nulles...",
+                    "Mesure de la tension amoureuse...",
+                    "Recherche des red flags...",
+                    "Décodage de vos sous-entendus...",
+                    "Recherche d'interdits toxiques..."
+                ];
+                let phraseIndex = 0;
+                loadingInterval = setInterval(() => {
+                    phraseIndex = (phraseIndex + 1) % loadingPhrases.length;
+                    loadingText.innerText = `Analyse en cours... 🤔\n${loadingPhrases[phraseIndex]}`;
+                }, 2500);
+
                 const aiResult = await callGeminiAPI(chatData);
+
+                clearInterval(loadingInterval);
 
                 displayResults(aiResult, chatData);
 
@@ -861,9 +1087,11 @@
                 results.style.display = 'block';
                 btn.disabled = false;
 
+                SoundEngine.playSuccess();
                 playCupidAnimation();
 
             } catch (error) {
+                if (loadingInterval) clearInterval(loadingInterval);
                 console.error("Erreur dans startAnalysis :", error);
                 alert("Une erreur est survenue :\n" + error.message);
                 loading.style.display = 'none';
@@ -879,8 +1107,11 @@
             arrow.style.animation = 'none';
             void cupid.offsetWidth;
 
+            SoundEngine.playShoot();
+
             cupid.style.animation = 'cupidShoot 3s ease-in-out forwards';
             setTimeout(() => {
+                SoundEngine.playShoot();
                 arrow.style.animation = 'arrowFly 1.5s linear forwards';
             }, 1200);
         }
