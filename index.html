@@ -28,14 +28,33 @@
             style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3);">
             <label for="apiKeyInput" style="display: flex; justify-content: space-between; align-items: center;">
                 Clé d'API Gemini (Requise) :
-                <button type="button"
-                    onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')"
-                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
-                    title="Pourquoi utiliser sa propre clé ?">❔</button>
+                <div style="display: flex; gap: 5px;">
+                    <button type="button"
+                        onclick="const p = document.getElementById('inline-settings-panel'); if (p.style.maxHeight === '0px' || !p.style.maxHeight) { p.style.maxHeight = '150px'; p.style.opacity = '1'; p.style.marginTop = '15px'; p.style.borderColor = 'rgba(255, 255, 255, 0.1)'; } else { p.style.maxHeight = '0px'; p.style.opacity = '0'; p.style.marginTop = '0px'; p.style.borderColor = 'transparent'; }"
+                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; margin-right: 5px; width: auto; color: #aaa; transition: transform 0.3s, color 0.3s;"
+                        onmouseover="this.style.color='white'; this.style.transform='rotate(45deg)';" onmouseout="this.style.color='#aaa'; this.style.transform='rotate(0deg)';"
+                        title="Paramètres du modèle IA">⚙️</button>
+                    <button type="button"
+                        onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')"
+                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa; transition: color 0.3s;"
+                        onmouseover="this.style.color='white'" onmouseout="this.style.color='#aaa'"
+                        title="Pourquoi utiliser sa propre clé ?">❔</button>
+                </div>
             </label>
             <input type="password" id="apiKeyInput" placeholder="AIzaSy..."
                 style="width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: white;">
-            <div class="info-note">
+            
+            <div id="inline-settings-panel" style="max-height: 0px; opacity: 0; overflow: hidden; margin-top: 0px; padding: 0 15px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid transparent; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
+                <div style="padding: 15px 0;">
+                    <label for="modelSelect" style="color: rgba(255,255,255,0.8); display: block; margin-bottom: 8px; font-size: 0.9rem;">Modèle IA utilisé :</label>
+                    <select id="modelSelect" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); outline: none; appearance: none; cursor: pointer; font-size: 0.95rem;">
+                        <option value="gemini-3-flash-preview" style="color: black;" selected>Gemini 3 Flash (Le plus performant)</option>
+                        <option value="gemini-3.1-flash-lite-preview" style="color: black;">Gemini 3.1 Flash Lite (Le plus rapide)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="info-note" style="margin-top: 10px;">
                 <a href="https://aistudio.google.com/app/apikey" target="_blank"
                     style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a>
                 Elle sera sauvegardée sur votre navigateur.
@@ -208,7 +227,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="whatif-input" placeholder="Si je lui envoie : On se voit quand ?" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid rgba(157, 78, 221, 0.5); background: rgba(0,0,0,0.4); color: white; outline: none;">
+                    <input type="text" id="whatif-input" placeholder="Si je lui envoie : On se voit quand ?" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid rgba(157, 78, 221, 0.5); background: rgba(0,0,0,0.4); color: white; outline: none;" onkeypress="if(event.key === 'Enter') { event.preventDefault(); simulateWhatIf(); }">
                     <button onclick="simulateWhatIf()" id="whatif-btn" style="width: auto; padding: 12px 20px; background: linear-gradient(45deg, #9d4edd, #c77dff); border-radius: 8px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(157, 78, 221, 0.3);">Simuler</button>
                 </div>
             </div>
@@ -240,6 +259,17 @@
 self.addEventListener('message', async (e) => {
     const { filesData } = e.data;
     
+    // Trier les fichiers pour assurer une chronologie globale.
+    // Instagram nomme souvent "message_1.html" pour les fichiers les plus récents (et "message_2.html" pour les plus anciens).
+    filesData.sort((a, b) => {
+        const extA = a.name.split('.').pop().toLowerCase();
+        const extB = b.name.split('.').pop().toLowerCase();
+        if (extA === 'html' && extB === 'html') {
+            return b.name.localeCompare(a.name, undefined, {numeric: true}); // message_2 avant message_1
+        }
+        return a.name.localeCompare(b.name, undefined, {numeric: true});
+    });
+
     let combinedChatText = "";
     let globalNames = new Set();
     let allMessages = [];
@@ -299,7 +329,9 @@ self.addEventListener('message', async (e) => {
             personB,
             stats,
             // Keep recent context for "What If" simulation (last 50 messages)
-            recentContext: allMessages.slice(-50).map(m => `${m.author}: ${m.text}`).join('\n')
+            recentContext: allMessages.slice(-50).map(m => `${m.author}: ${m.text}`).join('\n'),
+            // Keep real last 5 messages object for pre-filling UI
+            recentMessages: allMessages.slice(-5)
         }
     });
 });
@@ -388,12 +420,15 @@ function extractInstagramHTML(htmlString) {
             let finalContent = (textContent + reactionsText).trim();
 
             if (finalContent !== "") {
-                chatText += `${author}: ${finalContent}\n`;
                 messages.push({ author: author, text: finalContent });
                 names.add(author);
             }
         }
     });
+
+    // Les exports Instagram sont souvent récents -> anciens. On inverse pour avoir un ordre chronologique (anciens -> récents).
+    messages.reverse();
+    chatText = messages.map(m => `${m.author}: ${m.text}`).join('\n') + '\n';
 
     return { text: chatText, names: names, messages: messages };
 }
