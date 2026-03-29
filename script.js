@@ -577,14 +577,37 @@ ${chatData.text}`;
             const messagesContainer = document.getElementById('messages-list');
             if (messagesContainer) {
                 messagesContainer.innerHTML = '';
+                const suggestionsContainer = document.getElementById('whatif-suggestions');
+                if (suggestionsContainer) {
+                    suggestionsContainer.innerHTML = '';
+                    suggestionsContainer.style.display = 'flex';
+                }
+
                 if (data.idees_messages_relance && data.idees_messages_relance.length > 0) {
                     messagesContainer.parentElement.style.display = 'block';
                     document.getElementById('messages-title').innerText = (chatData.goal === 'Roast') ? "Piques à envoyer (Mode Roast) 😈" : "Idées de messages de relance 💬";
                     data.idees_messages_relance.forEach(msg => {
                         messagesContainer.innerHTML += `<li style="margin-bottom: 8px;">"${msg}"</li>`;
+                        
+                        // Populate simulator interactive suggestions
+                        if (suggestionsContainer) {
+                            const btn = document.createElement('button');
+                            btn.style.cssText = "background: rgba(157, 78, 221, 0.2); border: 1px solid rgba(157, 78, 221, 0.5); border-radius: 12px; padding: 6px 12px; color: #e0b0ff; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;";
+                            btn.innerText = `💡 ${msg.length > 40 ? msg.substring(0, 40) + '...' : msg}`;
+                            btn.title = msg;
+                            btn.onmouseover = () => btn.style.background = 'rgba(157, 78, 221, 0.4)';
+                            btn.onmouseout = () => btn.style.background = 'rgba(157, 78, 221, 0.2)';
+                            btn.onclick = () => {
+                                const input = document.getElementById('whatif-input');
+                                input.value = msg;
+                                input.focus();
+                            };
+                            suggestionsContainer.appendChild(btn);
+                        }
                     });
                 } else {
                     messagesContainer.parentElement.style.display = 'none';
+                    if (suggestionsContainer) suggestionsContainer.style.display = 'none';
                 }
             }
 
@@ -915,32 +938,75 @@ ${chatData.text}`;
 Contexte réel ultra-récent (les derniers échanges) : 
 ${window.globalRecentContext}
 
-Génère UNIQUEMENT LA RÉPONSE de ${receiverName}.
-Voici leurs messages imaginaires récents :
+Génère LA RÉPONSE EXTENSIVE ET CRÉDIBLE de ${receiverName}.
+Voici les messages imaginaires de la simulation :
 ${window.simulatedHistory.join('\n')}
 
-Comment réagirais-tu MAINTENANT en tant que ${receiverName} ? 
-Ne sors pas du personnage. Inclus ses habitudes, tics, longueurs de réponse. NE METS PAS TON NOM, juste le message pur injecté dans l'UI. Pas de guillemets.`;
+Comment réagirait ${receiverName} MAINTENANT à ce dernier message de ${senderName} ? 
+Ne sors pas du personnage. Inclus ses habitudes, tics, longueurs de réponse.
+
+EN PLUS de la réponse, tu dois proposer 3 SUGGESTIONS DE RÉPONSES interactives que ${senderName} pourrait faire ENSUITE (pour relancer ou répondre).
+
+RÈGLES DE FORMATAGE JSON :
+N'utilise AUCUN guillemet double (") dans le texte à l'intérieur des valeurs JSON. Utilise uniquement des guillemets simples (') ou typographiques (« »).
+
+Renvoie UNIQUEMENT un objet JSON valide avec cette structure stricte :
+{
+  "reponse": "Le message exact de la réponse fictive de ${receiverName}, sans guillemets autour, sans nom d'auteur.",
+  "suggestions": [
+    { "but": "Pour changer de sujet", "emoji": "🤔", "texte": "Au fait, tu penses quoi de..." },
+    { "but": "Pour relancer le flirt", "emoji": "🔥", "texte": "T'es super mignon(ne) quand tu dis ça" },
+    { "but": "Pour esquiver", "emoji": "🏃", "texte": "Bref je dois y aller, à plus" }
+  ]
+}`;
 
                 const response = await fetch(endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.85 }
+                        generationConfig: { 
+                            temperature: 0.9,
+                            response_mime_type: "application/json" 
+                        }
                     })
                 });
                 
                 if (!response.ok) throw new Error("Erreur API Gemini");
                 
-                const data = await response.json();
-                let aiResponseText = data.candidates[0].content.parts[0].text.trim();
+                const responseData = await response.json();
+                let rawText = responseData.candidates[0].content.parts[0].text.trim();
+                const parsedData = JSON.parse(rawText);
                 
+                let aiResponseText = parsedData.reponse;
+                const newSuggestions = parsedData.suggestions;
+
                 const typingEl = document.getElementById(typingId);
                 if (typingEl) typingEl.remove();
 
                 window.simulatedHistory.push(`${receiverName}: ${aiResponseText}`);
                 renderWhatIfHistory();
+                
+                // Update local suggestions
+                const suggestionsContainer = document.getElementById('whatif-suggestions');
+                if (suggestionsContainer && newSuggestions && newSuggestions.length > 0) {
+                    suggestionsContainer.innerHTML = '';
+                    newSuggestions.forEach(sug => {
+                        const btn = document.createElement('button');
+                        btn.style.cssText = "background: rgba(157, 78, 221, 0.2); border: 1px solid rgba(157, 78, 221, 0.5); border-radius: 12px; padding: 6px 12px; color: #e0b0ff; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;";
+                        const textPreview = sug.texte.length > 35 ? sug.texte.substring(0, 35) + '...' : sug.texte;
+                        btn.innerHTML = `<span style="font-size:1.1rem">${sug.emoji}</span> <span style="text-align: left;"><b style="color:white">${sug.but}</b> : ${textPreview}</span>`;
+                        btn.title = sug.texte;
+                        btn.onmouseover = () => btn.style.background = 'rgba(157, 78, 221, 0.4)';
+                        btn.onmouseout = () => btn.style.background = 'rgba(157, 78, 221, 0.2)';
+                        btn.onclick = () => {
+                            const input = document.getElementById('whatif-input');
+                            input.value = sug.texte;
+                            input.focus();
+                        };
+                        suggestionsContainer.appendChild(btn);
+                    });
+                }
 
             } catch(e) {
                 const typingEl = document.getElementById(typingId);
