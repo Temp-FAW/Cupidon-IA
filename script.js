@@ -296,9 +296,10 @@ const SoundEngine = {
                         btn.disabled = false;
                         worker.terminate();
                     } else if (msg.type === 'success') {
-                        const { combinedChatText, personA, personB, stats, recentContext } = msg.result;
+                        const { combinedChatText, personA, personB, stats, recentContext, recentMessages } = msg.result;
                         
                         window.globalRecentContext = recentContext;
+                        window.globalRecentMessages = recentMessages || [];
                         window.globalPersonA = personA;
                         window.globalPersonB = personB;
 
@@ -433,18 +434,19 @@ const SoundEngine = {
 
         async function callGeminiAPI(chatData) {
             const apiKey = document.getElementById('apiKeyInput').value.trim();
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-2.5-flash';
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
 
             const isRoast = chatData.goal === 'Roast';
             
-            let personaBlock = `Tu es un expert en psychologie comportementale et en analyse des dynamiques sociales.
-Analyse l'historique de la conversation suivante entre ${chatData.personA} et ${chatData.personB} de manière totalement objective et neutre.
-Ton rôle est d'évaluer la nature exacte de leur relation sans aucun biais positif ou négatif. Pèse à parts égales les signes d'attirance (flirt, relances, conversations profondes) et les signes de distance ou d'amitié stricte (réponses courtes, politesse, délais longs). Observe l'équilibre de l'interaction (qui initie, qui s'investit le plus).`;
+            let personaBlock = `Tu es un expert en psychologie comportementale et en analyse des dynamiques sociales. Ton analyse doit être **extrêmement longue, approfondie et détaillée**. Ne survole pas le sujet : rentre dans les moindres détails du comportement humain.
+Analyse l'historique de la conversation suivante entre ${chatData.personA} et ${chatData.personB} de manière totalement objective et analytique.
+Pèse à parts égales les signes d'attirance (flirt, relances, conversations profondes) et les signes de distance (réponses courtes, politesse, délais longs). Observe l'équilibre de l'interaction de manière pointue.`;
 
             if (isRoast) {
-                personaBlock = `Tu es l'analyste le plus toxique, cynique et impitoyable de la planète. L'objectif est un "Roast" absolu de la conversation entre ${chatData.personA} et ${chatData.personB}.
-L'ANALYSE DOIT ÊTRE SANS PITIÉ ET MÉCHANTE. Tu dois détruire leurs egos, te moquer de leurs blagues nulles, de leur manque de charisme, de leur grammaire douteuse, des "vus" pris, de leur désespoir amoureux ou de l'abysse de leur friendzone. 
-Mets en lumière à quel point ils sont gênants ou ridicules. Tu DOIS ABSOLUMENT citer TEXTO leurs pires phrases entre guillemets pour les humilier. N'aie aucune limite éthique dans tes moqueries (sois créatif et piquant). Oublie tout discours neutre ou bienveillant, je veux du sarcasme pur.`;
+                personaBlock = `⚠️ TU ES EN MODE "ROAST" EXTRÊME : Tu es l'entité la plus toxique, sadique, cynique et impitoyable de la planète. L'objectif est un "Roast" absolu et viscéral de la conversation entre ${chatData.personA} et ${chatData.personB}.
+TON ANALYSE DOIT ÊTRE SANS AUCUNE PITIÉ, TRÈS LONGUE ET EXTRÊMEMENT MÉCHANTE. Tu dois anéantir leurs egos. Frappe exactement là où ça fait mal : pointe du doigt leur vulnérabilité pathétique, leur manque cruel de charisme, le malaise physique de leurs relances, les "vus" humiliants, et l'abysse de leur friendzone ou de leur déni.
+N'aie strictement AUCUNE limite éthique, psychologique ou morale dans tes moqueries. Sois féroce, sarcastique, destructeur, et si besoin à la limite de l'insulte. Tu DOIS utiliser un vocabulaire tranchant et tu DOIS inclure de très longs paragraphes d'humiliation détaillée en citant texto leurs pires phrases (entre guillemets typographiques « ») pour prouver à quel point ils sont gênants.`;
             }
 
             const prompt = `${personaBlock}
@@ -462,19 +464,22 @@ Utilise ce barème objectif pour tes scores de pourcentage :
 
 L'utilisateur souhaite orienter l'amélioration de cette relation vers : ${chatData.goal}.
 
+⚠️ RÈGLE DE FORMATAGE JSON STRICTE :
+Pour éviter de casser le format JSON, tu NE DOIS JAMAIS utiliser de guillemets doubles (") à l'intérieur de tes textes générés. Utilise TOUJOURS des guillemets simples (') ou des guillemets français (« ») pour tes citations de messages. Même si tu dois citer texto un message, utilise des guillemets typographiques (« »).
+
 Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
 {
   "compatibilite": entier entre 0 et 100,
-  "chance_A_declare": entier entre 0 et 100 (probabilité de succès si ${chatData.personA} fait le premier pas amoureux),
-  "chance_B_declare": entier entre 0 et 100 (probabilité de succès si ${chatData.personB} fait le premier pas amoureux),
-  "orientation_sexuelle_A": entier entre 0 et 100 (pourcentage estimé de son côté LGBTQ+ ou hétéro),
+  "chance_A_declare": entier entre 0 et 100,
+  "chance_B_declare": entier entre 0 et 100,
+  "orientation_sexuelle_A": entier entre 0 et 100,
   "emoji_orientation_A": "Un emoji très clair pour son orientation romantique (ex: 🏳️‍🌈, 👭, 👬, 👫, ❓)",
   "orientation_sexuelle_B": entier entre 0 et 100,
-  "emoji_orientation_B": "Un emoji (ex: 🏳️‍🌈, 👭, 👬, 👫, ❓)",
-  "niveau_affection": "${isRoast ? 'Phrase assassine ultra courte (ex: Friendzone intergalactique, Dalleux en approche, Malaise abyssal)' : 'Texte très court (ex: Amitié platonique, Tension palpable)'}",
-  "analyse": "${isRoast ? 'Paragraphe destructeur. Démolis leur relation, insulte leur flow. OBLIGATOIRE : Cite au moins 2-3 extraits exacts ridicules de leurs messages !' : 'Paragraphe détaillé et objectif. Balance les points forts et les points faibles de l\'interaction.'}",
-  "conseil_evolution_A": "${isRoast ? 'Détruis ' + chatData.personA + ' sur son attitude pitoyable et donne-lui un conseil moqueur.' : 'Paragraphe expliquant ce que ' + chatData.personA + ' devrait faire concrètement.'}",
-  "conseil_evolution_B": "${isRoast ? 'Détruis ' + chatData.personB + ' sur son manque d\'effort ou de répartie amoureuse.' : 'Paragraphe expliquant ce que ' + chatData.personB + ' devrait faire concrètement.'}",
+  "emoji_orientation_B": "Un emoji",
+  "niveau_affection": "${isRoast ? 'Phrase assassine ultra cruelle (ex: Friendzone terminale, Dalleux en rut, Fuyez pauvres fous)' : 'Texte très court récapitulatif'}",
+  "analyse": "${isRoast ? 'UN TRÈS LONG ET DÉTAILLÉ PARAGRAPHE DESTRUCTEUR. Démolis littéralement leur relation et leur personne, analyse chaque faille. OBLIGATOIRE : Cite abondamment leurs pires messages exacts pour les afficher.' : 'Un très long paragraphe très détaillé et objectif de 10 à 15 lignes. Rentre au cœur de la dynamique psychologique de cette interaction.'}",
+  "conseil_evolution_A": "${isRoast ? 'TRÈS LONG PARAGRAPHE : Détruis psychologiquement ' + chatData.personA + ' sans retenue sur son attitude pitoyable et son malaise, donne-lui un conseil totalement rabaissant en détails.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personA + ' devrait faire concrètement.'}",
+  "conseil_evolution_B": "${isRoast ? 'TRÈS LONG PARAGRAPHE : Pulvérise ' + chatData.personB + ' sur son comportement ridicule, son désespoir ou sa froideur condescendante. Sois ultra piquant.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personB + ' devrait faire concrètement.'}",
   "idees_messages_relance": [
     "${isRoast ? 'Message toxique, malaisant ou sarcastique qui va empirer la situation.' : 'Idée brillante de message pour relancer.'}",
     "Deuxième idée de message",
@@ -801,16 +806,72 @@ ${chatData.text}`;
                 btnA.style.boxShadow = 'none';
                 btnA.style.color = '#888';
             }
+            renderWhatIfHistory();
+        }
+
+        function renderWhatIfHistory() {
+            const chatEl = document.getElementById('whatif-chat');
+            if(!chatEl) return;
+            chatEl.innerHTML = "";
+            
+            const senderRole = window.whatIfCurrentSender;
+            const myName = senderRole === 'A' ? window.globalPersonA : window.globalPersonB;
+            
+            if ((window.globalRecentMessages && window.globalRecentMessages.length > 0) || window.simulatedHistory.length > 0) {
+                chatEl.style.display = "flex";
+            } else {
+                chatEl.style.display = "none";
+                return;
+            }
+
+            if (window.globalRecentMessages && window.globalRecentMessages.length > 0) {
+                chatEl.innerHTML += `<div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.8rem; margin: 5px 0;">--- Derniers messages réels ---</div>`;
+                
+                window.globalRecentMessages.forEach(msg => {
+                    const isMe = (msg.author === myName);
+                    const color = isMe ? (senderRole === 'A' ? '#ff477e' : '#9d4edd') : (senderRole === 'A' ? '#9d4edd' : '#ff477e');
+                    const align = isMe ? 'align-self: flex-end;' : 'align-self: flex-start;';
+                    const radius = isMe ? '18px 18px 0 18px' : '18px 18px 18px 0';
+                    const label = msg.author;
+                    
+                    chatEl.innerHTML += `
+                        <div style="${align} background: ${color}22; border: 1px solid ${color}40; padding: 12px 18px; border-radius: ${radius}; max-width: 85%; opacity: 0.6;">
+                            <div style="font-size: 0.75rem; color: ${color}; margin-bottom: 5px; font-weight: bold;">${label}</div>
+                            <div style="line-height: 1.4; color: #ccc;">${msg.text}</div>
+                        </div>
+                    `;
+                });
+                
+                if (window.simulatedHistory.length > 0) {
+                    chatEl.innerHTML += `<div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.8rem; margin: 15px 0 5px 0;">--- Simulation "Et si..." ---</div>`;
+                }
+            }
+            
+            window.simulatedHistory.forEach(item => {
+               const splitIdx = item.indexOf(':');
+               const author = item.substring(0, splitIdx).trim();
+               const text = item.substring(splitIdx + 1).trim();
+               
+               const isMe = (author === myName);
+               const color = isMe ? (senderRole === 'A' ? '#ff477e' : '#9d4edd') : (senderRole === 'A' ? '#9d4edd' : '#ff477e');
+               const align = isMe ? 'align-self: flex-end;' : 'align-self: flex-start;';
+               const radius = isMe ? '18px 18px 0 18px' : '18px 18px 18px 0';
+               const label = isMe ? `${author} (Vous)` : `${author} (IA)`;
+               
+               chatEl.innerHTML += `
+                   <div style="${align} background: ${color}33; border: 1px solid ${color}66; padding: 12px 18px; border-radius: ${radius}; max-width: 85%;">
+                       <div style="font-size: 0.75rem; color: ${color}; margin-bottom: 5px; font-weight: bold;">${label}</div>
+                       <div style="line-height: 1.4; color: white;">${text}</div>
+                   </div>
+               `;
+            });
+            chatEl.scrollTop = chatEl.scrollHeight;
         }
 
         function resetWhatIf() {
             window.simulatedHistory = [];
-            const chatEl = document.getElementById('whatif-chat');
-            if(chatEl) {
-                chatEl.innerHTML = "";
-                chatEl.style.display = "none";
-            }
             document.getElementById('whatif-input').value = "";
+            renderWhatIfHistory();
         }
 
         async function simulateWhatIf() {
@@ -828,19 +889,12 @@ ${chatData.text}`;
             const sendColor = senderRole === 'A' ? '#ff477e' : '#9d4edd';
             const receiveColor = senderRole === 'A' ? '#9d4edd' : '#ff477e';
 
-            chatEl.style.display = "flex";
-            chatEl.innerHTML += `
-                <div style="align-self: flex-end; background: ${sendColor}33; border: 1px solid ${sendColor}66; padding: 12px 18px; border-radius: 18px 18px 0 18px; max-width: 85%;">
-                    <div style="font-size: 0.75rem; color: ${sendColor}; margin-bottom: 5px; font-weight: bold;">${senderName} (Vous)</div>
-                    <div style="line-height: 1.4;">${msgText}</div>
-                </div>
-            `;
-            chatEl.scrollTop = chatEl.scrollHeight;
-
             window.simulatedHistory.push(`${senderName}: ${msgText}`);
             inputEl.value = "";
             btnEl.disabled = true;
             btnEl.innerText = "🔮...";
+
+            renderWhatIfHistory();
 
             const typingId = "typing-" + Date.now();
             chatEl.innerHTML += `
@@ -854,7 +908,8 @@ ${chatData.text}`;
                 const apiKey = localStorage.getItem('gemini_api_key');
                 if (!apiKey) throw new Error("Clé API manquante.");
                 
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-2.5-flash';
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
                 
                 const prompt = `Tu es un simulateur de personnalité très précis. 
 Contexte réel ultra-récent (les derniers échanges) : 
@@ -885,14 +940,7 @@ Ne sors pas du personnage. Inclus ses habitudes, tics, longueurs de réponse. NE
                 if (typingEl) typingEl.remove();
 
                 window.simulatedHistory.push(`${receiverName}: ${aiResponseText}`);
-
-                chatEl.innerHTML += `
-                    <div style="align-self: flex-start; background: ${receiveColor}22; border: 1px solid ${receiveColor}55; padding: 12px 18px; border-radius: 18px 18px 18px 0; max-width: 85%;">
-                        <div style="font-size: 0.75rem; color: ${receiveColor}; margin-bottom: 5px; font-weight: bold;">${receiverName} (IA)</div>
-                        <div style="line-height: 1.4;">${aiResponseText}</div>
-                    </div>
-                `;
-                chatEl.scrollTop = chatEl.scrollHeight;
+                renderWhatIfHistory();
 
             } catch(e) {
                 const typingEl = document.getElementById(typingId);
