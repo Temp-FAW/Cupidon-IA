@@ -302,6 +302,7 @@ const SoundEngine = {
                         window.globalRecentMessages = recentMessages || [];
                         window.globalPersonA = personA;
                         window.globalPersonB = personB;
+                        window.globalCombinedChatText = combinedChatText;
 
                         document.getElementById('stat-total').innerText = stats.total;
                         document.getElementById('stat-name-a').innerText = personA;
@@ -316,6 +317,7 @@ const SoundEngine = {
                         let finalGoal = 'Amour';
                         if (goalSelected === 'amitie') finalGoal = 'Amitié';
                         if (goalSelected === 'roast') finalGoal = 'Roast';
+                        window.globalGoal = finalGoal;
 
                         const chatData = {
                             text: combinedChatText,
@@ -1018,5 +1020,137 @@ Renvoie UNIQUEMENT un objet JSON valide avec cette structure stricte :
             } finally {
                 btnEl.disabled = false;
                 btnEl.innerText = "Envoyer";
+            }
+        }
+
+        // --- Q&A Logic ---
+        window.qaHistory = [];
+
+        function renderQAHistory() {
+            const chatEl = document.getElementById('qa-chat');
+            if(!chatEl) return;
+            chatEl.innerHTML = "";
+            
+            if (window.qaHistory.length > 0) {
+                chatEl.style.display = "flex";
+            } else {
+                chatEl.style.display = "none";
+                return;
+            }
+            
+            window.qaHistory.forEach(item => {
+               const splitIdx = item.indexOf(':');
+               const author = item.substring(0, splitIdx).trim();
+               const text = item.substring(splitIdx + 1).trim();
+               
+               const isMe = (author === 'Vous');
+               const color = isMe ? '#00f5d4' : '#00b4d8';
+               const align = isMe ? 'align-self: flex-end;' : 'align-self: flex-start;';
+               const radius = isMe ? '18px 18px 0 18px' : '18px 18px 18px 0';
+               const label = isMe ? `Vous` : `Cupidon`;
+               
+               chatEl.innerHTML += `
+                   <div style="${align} background: ${color}33; border: 1px solid ${color}66; padding: 12px 18px; border-radius: ${radius}; max-width: 85%;">
+                       <div style="font-size: 0.75rem; color: ${color}; margin-bottom: 5px; font-weight: bold;">${label}</div>
+                       <div style="line-height: 1.4; color: white;">${text}</div>
+                   </div>
+               `;
+            });
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        async function askCupid() {
+            const inputEl = document.getElementById('qa-input');
+            const chatEl = document.getElementById('qa-chat');
+            const btnEl = document.getElementById('qa-btn');
+            const questionText = inputEl.value.trim();
+            
+            if (!questionText || !window.globalCombinedChatText) return;
+
+            window.qaHistory.push(`Vous: ${questionText}`);
+            inputEl.value = "";
+            btnEl.disabled = true;
+            btnEl.innerText = "🤔...";
+
+            renderQAHistory();
+
+            const typingId = "qa-typing-" + Date.now();
+            chatEl.innerHTML += `
+                <div id="${typingId}" style="align-self: flex-start; background: #00b4d815; border: 1px solid #00b4d840; padding: 10px 15px; border-radius: 18px 18px 18px 0; max-width: 80%; font-style: italic; color: #aaa;">
+                    Cupidon cherche dans l'historique...
+                </div>
+            `;
+            chatEl.scrollTop = chatEl.scrollHeight;
+
+            try {
+                const apiKey = localStorage.getItem('gemini_api_key');
+                if (!apiKey) throw new Error("Clé API manquante.");
+                
+                const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3-flash-preview';
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+                
+                let systemPersona = "Tu es Cupidon, une IA qui analyse les relations.";
+                if (window.globalGoal === 'Roast') {
+                    systemPersona = "⚠️ TU ES EN MODE 'ROAST' EXTRÊME. Tu es l'entité la plus toxique et sadique. L'utilisateur te pose une question sur la relation. Détruis son ego, sois cassant, sarcastique, et donne-lui tort. Cite ses pires messages si ça peut l'humilier.";
+                } else if (window.globalGoal === 'Amour') {
+                    systemPersona = "Tu es Cupidon, un conseiller en amour hyper bienveillant et fin psychologue. Tu réponds aux questions de l'utilisateur sur sa relation avec beaucoup de tact et de conseils précis.";
+                } else {
+                    systemPersona = "Tu es Cupidon, tu donnes des conseils objectifs et amicaux pour améliorer cette relation vers de l'amitié solide.";
+                }
+                
+                const prompt = `${systemPersona}
+L'utilisateur te pose cette question : "${questionText}"
+Voici les questions de votre discussion Q&A jusqu'à présent : 
+${window.qaHistory.map(h => "- " + h).join('\n')}
+
+Pour y répondre précisément, voici LE TEXTE INTÉGRAL de leur conversation réelle (historique complet entre ${window.globalPersonA} et ${window.globalPersonB}) :
+${window.globalCombinedChatText}
+
+Analyse spécifiquement cet historique pour répondre à la question de l'utilisateur. 
+Si la question porte sur un sujet précis évoqué dans l'historique, retrouve-le et mentionne-le en citant le texte si besoin (Mets les citations entre guillemets « »).
+Ta réponse doit être détaillée, argumentée (au moins 2-3 paragraphes), et ne doit idéalement contenir AUCUN guillemet anglais ("") afin de ne pas casser le parseur JSON.
+
+Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
+{
+  "reponse": "Ta réponse texte très complète, formatée avec des passages à la ligne (\\n)."
+}`;
+
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { 
+                            temperature: 0.8,
+                            response_mime_type: "application/json" 
+                        }
+                    })
+                });
+                
+                if (!response.ok) throw new Error("Erreur API Gemini");
+                
+                const responseData = await response.json();
+                let rawText = responseData.candidates[0].content.parts[0].text.trim();
+                const parsedData = JSON.parse(rawText);
+                
+                let aiResponseText = parsedData.reponse;
+                aiResponseText = aiResponseText.replace(/\\n/g, '<br>');
+
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+
+                window.qaHistory.push(`Cupidon: ${aiResponseText}`);
+                renderQAHistory();
+
+            } catch(e) {
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) {
+                    typingEl.innerText = "❌ Bug de transmission.";
+                    typingEl.style.color = "red";
+                }
+                console.error(e);
+            } finally {
+                btnEl.disabled = false;
+                btnEl.innerText = "Demander";
             }
         }
