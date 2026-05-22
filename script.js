@@ -436,7 +436,7 @@ const SoundEngine = {
 
         async function callGeminiAPI(chatData) {
             const apiKey = document.getElementById('apiKeyInput').value.trim();
-            const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-2.5-flash';
+            const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash';
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
 
             const isRoast = chatData.goal === 'Roast';
@@ -933,7 +933,7 @@ ${chatData.text}`;
                 const apiKey = localStorage.getItem('gemini_api_key');
                 if (!apiKey) throw new Error("Clé API manquante.");
                 
-                const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-2.5-flash';
+                const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash';
                 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
                 
                 const prompt = `Tu es un simulateur de personnalité très précis. 
@@ -1086,7 +1086,7 @@ Renvoie UNIQUEMENT un objet JSON valide avec cette structure stricte :
                 const apiKey = localStorage.getItem('gemini_api_key');
                 if (!apiKey) throw new Error("Clé API manquante.");
                 
-                const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3-flash-preview';
+                const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash';
                 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
                 
                 let systemPersona = "Tu es Cupidon, une IA qui analyse les relations.";
