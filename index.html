@@ -101,7 +101,10 @@
         </div>
 
         <button id="analyzeBtn" onclick="startAnalysis()">Lancer l'Analyse IA 🪄</button>
-        <button id="resetBtn" class="btn-reset" onclick="resetAppData()">Réinitialiser les données 🗑️</button>
+        <div style="display: flex; gap: 15px; margin-top: 15px;">
+            <button id="historyBtn" class="btn-history" style="flex: 1; margin-top: 0;" onclick="openHistoryModal()">📜 Historique</button>
+            <button id="resetBtn" class="btn-reset" style="flex: 1; margin-top: 0;" onclick="resetAppData()">Réinitialiser 🗑️</button>
+        </div>
 
         <div class="loading" id="loading">
             <div class="spinner"></div>
@@ -299,6 +302,28 @@
             </svg>
         </a>
     </footer>
+
+    <!-- Badge Detail Modal -->
+    <div id="badge-modal" class="badge-modal" onclick="closeBadgeModal()">
+        <div class="badge-modal-content" onclick="event.stopPropagation()">
+            <button class="badge-modal-close" onclick="closeBadgeModal()">&times;</button>
+            <div id="badge-modal-emoji" class="badge-modal-emoji">🏆</div>
+            <div id="badge-modal-title" class="badge-modal-title">Titre du Badge</div>
+            <div id="badge-modal-desc" class="badge-modal-desc">Description complète du badge...</div>
+        </div>
+    </div>
+
+    <!-- Modal Historique -->
+    <div id="history-modal" class="history-modal" onclick="closeHistoryModal()">
+        <div class="history-modal-content" onclick="event.stopPropagation()">
+            <button class="history-modal-close" onclick="closeHistoryModal()">&times;</button>
+            <div class="history-modal-title">📜 Historique d'Analyse</div>
+            <div id="history-list" class="history-list">
+                <!-- Rempli dynamiquement -->
+            </div>
+            <button class="btn-clear-all" onclick="clearAllHistory()">Vider l'historique 🗑️</button>
+        </div>
+    </div>
 
     <script id="workerScript" type="javascript/worker">
 self.addEventListener('message', async (e) => {

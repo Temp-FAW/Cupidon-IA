@@ -129,22 +129,22 @@ const SoundEngine = {
                 clonedSlides.forEach((slide, idx) => {
                     const originalSlide = resultsEl.children[idx];
                     if (originalSlide && originalSlide.style.display === 'none') {
-                        slide.style.display = 'none';
+                        slide.style.setProperty('display', 'none', 'important');
                         return;
                     }
-                    slide.style.opacity = '1';
-                    slide.style.transform = 'none';
-                    slide.style.minHeight = 'auto';
-                    slide.style.height = 'auto';
-                    slide.style.width = '100%';
-                    slide.style.padding = '15px 0';
-                    slide.style.scrollSnapAlign = 'none';
+                    slide.style.setProperty('opacity', '1', 'important');
+                    slide.style.setProperty('transform', 'none', 'important');
+                    slide.style.setProperty('min-height', 'auto', 'important');
+                    slide.style.setProperty('height', 'auto', 'important');
+                    slide.style.setProperty('width', '100%', 'important');
+                    slide.style.setProperty('padding', '15px 0', 'important');
+                    slide.style.setProperty('scroll-snap-align', 'none', 'important');
                     
-                    // Hide the actions slide in the infographic
-                    if (idx === clonedSlides.length - 1) {
-                        slide.style.display = 'none';
+                    // Hide the actions slide and interactive chat boxes (whatif & qa) in the infographic
+                    if (idx === clonedSlides.length - 1 || slide.id === 'whatif-box' || slide.id === 'qa-box') {
+                        slide.style.setProperty('display', 'none', 'important');
                     } else {
-                        slide.style.display = 'block';
+                        slide.style.setProperty('display', 'block', 'important');
                     }
                 });
 
@@ -206,7 +206,16 @@ const SoundEngine = {
                 // Specific fixes for text colors that were lost
                 wrapper.querySelectorAll('.text-analysis').forEach(el => el.style.setProperty('color', '#eeeeee', 'important'));
                 wrapper.querySelectorAll('.score-label').forEach(el => el.style.setProperty('color', '#dddddd', 'important'));
-                wrapper.querySelectorAll('.highlight-desc, .badge-desc').forEach(el => el.style.setProperty('color', '#dddddd', 'important'));
+                
+                // Show full badge descriptions without clamp or overflow in the static story
+                wrapper.querySelectorAll('.badge-desc').forEach(el => {
+                    el.style.setProperty('color', '#dddddd', 'important');
+                    el.style.setProperty('display', 'block', 'important');
+                    el.style.setProperty('overflow', 'visible', 'important');
+                    el.style.setProperty('-webkit-line-clamp', 'none', 'important');
+                });
+                
+                wrapper.querySelectorAll('.highlight-desc').forEach(el => el.style.setProperty('color', '#dddddd', 'important'));
                 
                 // Remove the button from clone
                 const clonedBtn = clone.querySelector('#shareBtn');
@@ -279,6 +288,7 @@ const SoundEngine = {
             if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
 
             initCursorTrail();
+            renderHistoryList();
 
             const fileInput = document.getElementById('fileInput');
             const fileNameDisplay = document.getElementById('fileNameDisplay');
@@ -591,6 +601,9 @@ const SoundEngine = {
                 const aiResult = await callGeminiAPI(chatData);
                 clearInterval(loadingInterval);
                 displayResults(aiResult, chatData);
+
+                // Sauvegarder dans l'historique
+                saveToHistory(aiResult, chatData, stats, recentContext, recentMessages);
 
                 loading.style.display = 'none';
                 results.style.display = 'block';
@@ -935,7 +948,7 @@ ${chatData.text}`;
                 if (data.badges && data.badges.length > 0) {
                     data.badges.forEach(badge => {
                         badgesContainer.innerHTML += `
-                            <div class="badge-card stagger-item">
+                            <div class="badge-card stagger-item" onclick="showBadgeModal(this)">
                                 <div class="badge-emoji">${badge.emoji}</div>
                                 <div class="badge-title">${badge.titre}</div>
                                 <div class="badge-desc">${badge.description}</div>
@@ -1663,4 +1676,231 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
 
             // Scroller le document global vers le haut
             window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+
+        function showBadgeModal(element) {
+            try {
+                const emoji = element.querySelector('.badge-emoji').innerText;
+                const title = element.querySelector('.badge-title').innerText;
+                const desc = element.querySelector('.badge-desc').innerText;
+
+                document.getElementById('badge-modal-emoji').innerText = emoji;
+                document.getElementById('badge-modal-title').innerText = title;
+                document.getElementById('badge-modal-desc').innerText = desc;
+
+                document.getElementById('badge-modal').classList.add('show');
+                try { SoundEngine.playClick(); } catch(e) {}
+            } catch(e) {
+                console.error("Error opening badge modal:", e);
+            }
+        }
+
+        function closeBadgeModal() {
+            document.getElementById('badge-modal').classList.remove('show');
+            try { SoundEngine.playClick(); } catch(e) {}
+        }
+
+        // --- Fonctions d'Historique d'Analyse ---
+        function saveToHistory(aiResult, chatData, stats, recentContext, recentMessages) {
+            try {
+                const history = JSON.parse(localStorage.getItem('cupidon_history') || '[]');
+                
+                const historyItem = {
+                    id: 'analysis_' + Date.now(),
+                    date: new Date().toLocaleString('fr-FR'),
+                    personA: chatData.personA,
+                    personB: chatData.personB,
+                    goal: chatData.goal,
+                    compatibilite: aiResult.compatibilite,
+                    stats: stats,
+                    aiResult: aiResult,
+                    recentContext: recentContext,
+                    recentMessages: recentMessages,
+                    combinedChatText: chatData.text,
+                    model: document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash'
+                };
+
+                let success = false;
+                let attempts = 0;
+                
+                // Résilience aux limites de localStorage
+                while (!success && attempts < 3) {
+                    try {
+                        // Éliminer les doublons stricts pour les mêmes personnes avec le même but
+                        const filteredHistory = history.filter(item => 
+                            !(item.personA === historyItem.personA && item.personB === historyItem.personB && item.goal === historyItem.goal)
+                        );
+                        
+                        const updatedHistory = [historyItem, ...filteredHistory];
+                        
+                        // Limiter à 10 éléments
+                        if (updatedHistory.length > 10) updatedHistory.pop();
+                        
+                        localStorage.setItem('cupidon_history', JSON.stringify(updatedHistory));
+                        success = true;
+                    } catch (quotaError) {
+                        attempts++;
+                        if (attempts === 1) {
+                            // Tronquer combinedChatText aux 500 dernières lignes
+                            const lines = historyItem.combinedChatText.split('\n');
+                            if (lines.length > 500) {
+                                historyItem.combinedChatText = "[...Historique long tronqué pour économiser l'espace...]\n" + lines.slice(-500).join('\n');
+                            } else if (history.length > 0) {
+                                history.pop();
+                            } else {
+                                throw quotaError;
+                            }
+                        } else if (attempts === 2) {
+                            // Tronquer combinedChatText aux 150 dernières lignes
+                            const lines = historyItem.combinedChatText.split('\n');
+                            if (lines.length > 150) {
+                                historyItem.combinedChatText = "[...Historique tronqué...]\n" + lines.slice(-150).join('\n');
+                            } else if (history.length > 0) {
+                                history.pop();
+                            } else {
+                                throw quotaError;
+                            }
+                        } else {
+                            // Supprimer totalement combinedChatText en dernier recours
+                            historyItem.combinedChatText = historyItem.recentContext;
+                        }
+                    }
+                }
+                renderHistoryList();
+            } catch (e) {
+                console.error("Impossible de sauvegarder l'analyse dans l'historique :", e);
+            }
+        }
+
+        function openHistoryModal() {
+            try { SoundEngine.playClick(); } catch(e) {}
+            renderHistoryList();
+            document.getElementById('history-modal').classList.add('show');
+        }
+
+        function closeHistoryModal() {
+            try { SoundEngine.playClick(); } catch(e) {}
+            document.getElementById('history-modal').classList.remove('show');
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('history-list');
+            if (!container) return;
+
+            const history = JSON.parse(localStorage.getItem('cupidon_history') || '[]');
+            if (history.length === 0) {
+                container.innerHTML = `<div class="history-empty">Aucune analyse sauvegardée. Importez une conversation pour commencer ! 📂</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            history.forEach(item => {
+                let goalEmoji = '❤️';
+                if (item.goal === 'Amitié') goalEmoji = '🤝';
+                if (item.goal === 'Roast') goalEmoji = '😈';
+
+                container.innerHTML += `
+                    <div class="history-item">
+                        <div class="history-info">
+                            <div class="history-names">
+                                ${item.personA} <span>${item.goal === 'Roast' ? '🔥' : '💘'}</span> ${item.personB}
+                            </div>
+                            <div class="history-meta">
+                                Objectif : ${item.goal} ${goalEmoji}<br>
+                                Analyse du ${item.date} (${item.model || 'Flash'})
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="history-score-badge">${item.compatibilite}%</div>
+                            <div class="history-actions">
+                                <button class="btn-restore-history" onclick="restoreAnalysis('${item.id}')">🪄</button>
+                                <button class="btn-delete-history" onclick="deleteHistoryItem('${item.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function restoreAnalysis(id) {
+            try { SoundEngine.playClick(); } catch(e) {}
+            const history = JSON.parse(localStorage.getItem('cupidon_history') || '[]');
+            const item = history.find(i => i.id === id);
+            if (!item) return;
+
+            // Restaurer les variables de contexte
+            window.globalRecentContext = item.recentContext;
+            window.globalRecentMessages = item.recentMessages || [];
+            window.globalPersonA = item.personA;
+            window.globalPersonB = item.personB;
+            window.globalCombinedChatText = item.combinedChatText;
+            window.globalGoal = item.goal;
+
+            // Vider le Q&A et chat précédent
+            window.qaHistory = [];
+            window.simulatedHistory = [];
+            
+            const qaChat = document.getElementById('qa-chat');
+            if (qaChat) {
+                qaChat.innerHTML = '';
+                qaChat.style.display = 'none';
+            }
+            const whatifChat = document.getElementById('whatif-chat');
+            if (whatifChat) {
+                whatifChat.innerHTML = '';
+                whatifChat.style.display = 'none';
+            }
+
+            const chatData = {
+                text: item.combinedChatText,
+                personA: item.personA,
+                personB: item.personB,
+                goal: item.goal
+            };
+
+            // Mettre à jour l'onglet statistiques brutes
+            document.getElementById('stat-total').innerText = item.stats.total;
+            document.getElementById('stat-name-a').innerText = item.personA;
+            document.getElementById('stat-name-b').innerText = item.personB;
+            document.getElementById('stat-pct-a').innerText = Math.round((item.stats.countA / item.stats.total) * 100) + "%";
+            document.getElementById('stat-pct-b').innerText = Math.round((item.stats.countB / item.stats.total) * 100) + "%";
+            document.getElementById('stat-emojis-a').innerText = item.stats.emojisA;
+            document.getElementById('stat-emojis-b').innerText = item.stats.emojisB;
+            document.getElementById('raw-stats').style.display = 'block';
+
+            // Afficher les résultats re-générés
+            displayResults(item.aiResult, chatData);
+
+            closeHistoryModal();
+
+            // Mode présentation plein écran
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.body.classList.add('results-active');
+
+            // Relancer les observateurs et le scroll-snapping
+            initPresentationNavigation();
+
+            try {
+                SoundEngine.playSuccess();
+                playCupidAnimation();
+            } catch(e) {}
+        }
+
+        function deleteHistoryItem(id) {
+            try { SoundEngine.playClick(); } catch(e) {}
+            if (confirm("Supprimer cette analyse de l'historique ?")) {
+                const history = JSON.parse(localStorage.getItem('cupidon_history') || '[]');
+                const updated = history.filter(i => i.id !== id);
+                localStorage.setItem('cupidon_history', JSON.stringify(updated));
+                renderHistoryList();
+            }
+        }
+
+        function clearAllHistory() {
+            try { SoundEngine.playClick(); } catch(e) {}
+            if (confirm("Voulez-vous vider TOUT l'historique des analyses ? Cette action est irréversible.")) {
+                localStorage.removeItem('cupidon_history');
+                renderHistoryList();
+            }
         }

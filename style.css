@@ -321,11 +321,130 @@
             min-width: 150px;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
 
         .badge-card:hover {
             transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .badge-card:active {
+            transform: translateY(-2px) scale(0.96);
+            transition: transform 0.1s ease;
+        }
+
+        .badge-card.expanded {
+            background: rgba(255, 71, 126, 0.15) !important;
+            border-color: rgba(255, 71, 126, 0.5) !important;
+            box-shadow: 0 8px 25px rgba(255, 71, 126, 0.3) !important;
+            transform: scale(1.05) !important;
+            z-index: 10;
+        }
+
+        .badge-card.expanded .badge-desc {
+            display: block !important;
+            overflow: visible !important;
+            -webkit-line-clamp: none !important;
+        }
+
+        /* Badge Modal Overlay */
+        .badge-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .badge-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .badge-modal-content {
+            background: rgba(25, 10, 20, 0.85);
+            border: 1px solid rgba(255, 71, 126, 0.4);
+            box-shadow: 0 15px 45px rgba(255, 71, 126, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.05);
+            padding: 30px 25px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+            transform: scale(0.8) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .badge-modal.show .badge-modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .badge-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.8rem;
+            cursor: pointer;
+            line-height: 1;
+            transition: all 0.2s;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .badge-modal-close:hover {
+            color: #ffd166;
+            transform: scale(1.1);
+        }
+
+        .badge-modal-emoji {
+            font-size: 4.5rem;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 12px rgba(255, 209, 102, 0.4));
+            animation: floatBadge 3s ease-in-out infinite;
+        }
+
+        .badge-modal-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #ffd166, #ff7096);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(255, 209, 102, 0.1);
+        }
+
+        .badge-modal-desc {
+            font-size: 0.95rem;
+            color: #eee;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        @keyframes floatBadge {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
         }
 
         .badge-emoji {
@@ -1014,5 +1133,267 @@
                 left: 15px;
                 padding: 8px 16px;
                 font-size: 0.85rem;
+            }
+        }
+
+        /* --- Analysis History Styles --- */
+        .btn-history {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .btn-history:hover {
+            background: rgba(157, 78, 221, 0.15) !important;
+            border-color: rgba(157, 78, 221, 0.4) !important;
+            color: #e0b0ff !important;
+            box-shadow: 0 5px 15px rgba(157, 78, 221, 0.2) !important;
+            transform: translateY(-2px);
+        }
+
+        .history-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .history-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .history-modal-content {
+            background: rgba(25, 10, 20, 0.85);
+            border: 1px solid rgba(157, 78, 221, 0.4);
+            box-shadow: 0 15px 45px rgba(157, 78, 221, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.05);
+            padding: 30px 25px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80dvh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transform: scale(0.8) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .history-modal.show .history-modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .history-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.8rem;
+            cursor: pointer;
+            line-height: 1;
+            transition: all 0.2s;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .history-modal-close:hover {
+            color: #ffd166;
+            transform: scale(1.1);
+        }
+
+        .history-modal-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #ffd166, #ff7096);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(255, 209, 102, 0.1);
+        }
+
+        .history-list {
+            overflow-y: auto;
+            flex: 1;
+            margin-bottom: 20px;
+            padding-right: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .history-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 71, 126, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .history-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .history-names {
+            font-weight: bold;
+            font-size: 1.05rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-meta {
+            font-size: 0.8rem;
+            color: #aaa;
+            line-height: 1.4;
+        }
+
+        .history-score-badge {
+            background: rgba(255, 71, 126, 0.15);
+            border: 1px solid rgba(255, 71, 126, 0.3);
+            color: #ff7096;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-restore-history {
+            background: linear-gradient(45deg, #ff477e, #ff7096);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            width: auto;
+        }
+
+        .btn-restore-history:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 10px rgba(255, 71, 126, 0.4);
+        }
+
+        .btn-delete-history {
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid rgba(255, 51, 51, 0.3);
+            color: #ff9999;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            width: auto;
+        }
+
+        .btn-delete-history:hover {
+            background: rgba(255, 51, 51, 0.3);
+            color: white;
+        }
+
+        .btn-clear-all {
+            background: transparent;
+            border: 1px dashed rgba(255, 51, 51, 0.4);
+            color: #ff9999;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-clear-all:hover {
+            background: rgba(255, 51, 51, 0.15);
+            border-color: #ff3333;
+            color: #ffcccc;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #888;
+            padding: 30px 10px;
+            font-style: italic;
+        }
+
+        /* Mobile specific history overrides */
+        @media (max-width: 768px) {
+            .history-modal-content {
+                padding: 20px 15px !important;
+                width: 92% !important;
+                max-height: 85dvh !important;
+            }
+            .history-item {
+                padding: 12px 10px !important;
+                gap: 8px !important;
+            }
+            .history-names {
+                font-size: 0.95rem !important;
+            }
+            .history-meta {
+                font-size: 0.72rem !important;
+            }
+            .history-score-badge {
+                padding: 3px 8px !important;
+                font-size: 0.8rem !important;
+            }
+            .btn-restore-history, .btn-delete-history {
+                padding: 5px 8px !important;
+                font-size: 0.75rem !important;
             }
         }
