@@ -86,6 +86,7 @@ const SoundEngine = {
                 // Clone results to a clean wrapper for html2canvas
                 const resultsEl = document.getElementById('results');
                 const clone = resultsEl.cloneNode(true);
+                clone.id = 'cloned-results'; // IMPORTANT: Prevent matching body.results-active #results stylesheet rule
                 clone.style.display = 'block';
                 clone.style.animation = 'none';
 
@@ -123,21 +124,89 @@ const SoundEngine = {
 
                 document.body.appendChild(wrapper);
 
+                // Reset presentation layout inside the clone for clean static rendering
+                const clonedSlides = wrapper.querySelectorAll('.result-slide');
+                clonedSlides.forEach((slide, idx) => {
+                    const originalSlide = resultsEl.children[idx];
+                    if (originalSlide && originalSlide.style.display === 'none') {
+                        slide.style.display = 'none';
+                        return;
+                    }
+                    slide.style.opacity = '1';
+                    slide.style.transform = 'none';
+                    slide.style.minHeight = 'auto';
+                    slide.style.height = 'auto';
+                    slide.style.width = '100%';
+                    slide.style.padding = '15px 0';
+                    slide.style.scrollSnapAlign = 'none';
+                    
+                    // Hide the actions slide in the infographic
+                    if (idx === clonedSlides.length - 1) {
+                        slide.style.display = 'none';
+                    } else {
+                        slide.style.display = 'block';
+                    }
+                });
+
+                // Reset all staggered elements to make them fully visible in the clone
+                const clonedStaggers = wrapper.querySelectorAll('.stagger-item');
+                clonedStaggers.forEach(item => {
+                    item.style.setProperty('opacity', '1', 'important');
+                    item.style.setProperty('transform', 'none', 'important');
+                    item.style.setProperty('transition', 'none', 'important');
+                    item.style.setProperty('transition-delay', '0s', 'important');
+                });
+
+                // Optimize the cards within the slides for static contrast/rendering
+                // We use setProperty with 'important' because the stylesheet uses !important on these cards
+                wrapper.querySelectorAll('.result-slide > div, .result-slide > .improvement-box, .result-slide > .scores-grid, .result-slide > .analysis-box').forEach(card => {
+                    card.style.setProperty('background', 'rgba(0, 0, 0, 0.4)', 'important');
+                    
+                    // Preserve custom left border colors from categories (Topics, Highlights, Red Flags, Conseils, Messages)
+                    if (card.classList.contains('improvement-box') || card.classList.contains('analysis-box')) {
+                        const compBorderLeft = getComputedStyle(card).borderLeftColor || primary;
+                        card.style.setProperty('border-left', `5px solid ${compBorderLeft}`, 'important');
+                        card.style.setProperty('border-top', '1px solid rgba(255, 255, 255, 0.15)', 'important');
+                        card.style.setProperty('border-right', '1px solid rgba(255, 255, 255, 0.15)', 'important');
+                        card.style.setProperty('border-bottom', '1px solid rgba(255, 255, 255, 0.15)', 'important');
+                    } else if (!card.classList.contains('scores-grid')) {
+                        card.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.15)', 'important');
+                    }
+                    
+                    card.style.setProperty('border-radius', '20px', 'important');
+                    card.style.setProperty('padding', '25px', 'important');
+                    card.style.setProperty('margin', '15px auto', 'important');
+                    card.style.setProperty('max-width', '100%', 'important');
+                    card.style.setProperty('backdrop-filter', 'none', 'important');
+                    card.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                    card.style.setProperty('box-shadow', '0 10px 25px rgba(0, 0, 0, 0.3)', 'important');
+                });
+
+                // Hide interactive widgets inside the static share card
+                const interactiveSelectors = [
+                    '#whatif-input', '#whatif-btn', '#whatif-suggestions', 'button[onclick*="resetWhatIf"]',
+                    '#qa-input', '#qa-btn', '.floating-back-btn', '.nav-dots-container'
+                ];
+                interactiveSelectors.forEach(sel => {
+                    const els = wrapper.querySelectorAll(sel);
+                    els.forEach(el => el.style.setProperty('display', 'none', 'important'));
+                });
+
                 // IMPORTANT FIX: Remove all backdrop-filters and force text colors inside clone
                 wrapper.querySelectorAll('*').forEach(el => {
-                    el.style.backdropFilter = 'none';
-                    el.style.webkitBackdropFilter = 'none';
+                    el.style.setProperty('backdrop-filter', 'none', 'important');
+                    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
                     
                     const comp = getComputedStyle(el);
                     if (comp.color === 'rgba(0, 0, 0, 0)' || comp.color === 'transparent') {
-                        el.style.color = '#ffffff';
+                        el.style.setProperty('color', '#ffffff', 'important');
                     }
                 });
                 
                 // Specific fixes for text colors that were lost
-                wrapper.querySelectorAll('.text-analysis').forEach(el => el.style.color = '#eeeeee');
-                wrapper.querySelectorAll('.score-label').forEach(el => el.style.color = '#dddddd');
-                wrapper.querySelectorAll('.highlight-desc, .badge-desc').forEach(el => el.style.color = '#dddddd');
+                wrapper.querySelectorAll('.text-analysis').forEach(el => el.style.setProperty('color', '#eeeeee', 'important'));
+                wrapper.querySelectorAll('.score-label').forEach(el => el.style.setProperty('color', '#dddddd', 'important'));
+                wrapper.querySelectorAll('.highlight-desc, .badge-desc').forEach(el => el.style.setProperty('color', '#dddddd', 'important'));
                 
                 // Remove the button from clone
                 const clonedBtn = clone.querySelector('#shareBtn');
@@ -527,6 +596,11 @@ const SoundEngine = {
                 results.style.display = 'block';
                 btn.disabled = false;
 
+                // Mode présentation plein écran
+                document.getElementById('form-container').style.display = 'none';
+                document.body.classList.add('results-active');
+                initPresentationNavigation();
+
                 SoundEngine.playSuccess();
                 playCupidAnimation();
             } catch (err) {
@@ -830,7 +904,7 @@ ${chatData.text}`;
                     messagesContainer.parentElement.style.display = 'block';
                     document.getElementById('messages-title').innerText = (chatData.goal === 'Roast') ? "Piques à envoyer (Mode Roast) 😈" : "Idées de messages de relance 💬";
                     data.idees_messages_relance.forEach(msg => {
-                        messagesContainer.innerHTML += `<li style="margin-bottom: 8px;">"${msg}"</li>`;
+                        messagesContainer.innerHTML += `<li class="stagger-item" style="margin-bottom: 8px;">"${msg}"</li>`;
                         
                         // Populate simulator interactive suggestions
                         if (suggestionsContainer) {
@@ -861,7 +935,7 @@ ${chatData.text}`;
                 if (data.badges && data.badges.length > 0) {
                     data.badges.forEach(badge => {
                         badgesContainer.innerHTML += `
-                            <div class="badge-card">
+                            <div class="badge-card stagger-item">
                                 <div class="badge-emoji">${badge.emoji}</div>
                                 <div class="badge-title">${badge.titre}</div>
                                 <div class="badge-desc">${badge.description}</div>
@@ -879,7 +953,7 @@ ${chatData.text}`;
                 if (data.sujets_conversation && data.sujets_conversation.length > 0) {
                     topicsBox.style.display = 'block';
                     data.sujets_conversation.forEach(topic => {
-                        topicsContainer.innerHTML += `<div class="topic-badge">${topic}</div>`;
+                        topicsContainer.innerHTML += `<div class="topic-badge stagger-item">${topic}</div>`;
                     });
                 } else {
                     topicsBox.style.display = 'none';
@@ -895,7 +969,7 @@ ${chatData.text}`;
                     redflagsBox.style.display = 'block';
                     data.red_flags.forEach(rf => {
                         redflagsContainer.innerHTML += `
-                            <div class="highlight-item" style="border-left-color: #ff3333; background: rgba(255,51,51,0.1);">
+                            <div class="highlight-item stagger-item" style="border-left-color: #ff3333; background: rgba(255,51,51,0.1);">
                                 <div class="highlight-title" style="color:#ff3333;">${rf.titre}</div>
                                 <div class="highlight-desc">${rf.description}</div>
                             </div>
@@ -915,7 +989,7 @@ ${chatData.text}`;
                     highlightsBox.style.display = 'block';
                     data.moments_forts.forEach(hl => {
                         highlightsContainer.innerHTML += `
-                            <div class="highlight-item">
+                            <div class="highlight-item stagger-item">
                                 <div class="highlight-title">${hl.titre}</div>
                                 <div class="highlight-desc">${hl.description}</div>
                             </div>
@@ -934,7 +1008,7 @@ ${chatData.text}`;
                     data.evolution_temporelle.forEach(evo => {
                         const barId = `bar-${evo.periode.replace(/[^a-zA-Z0-9]/g, '')}`;
                         evolutionContainer.innerHTML += `
-                            <div class="evolution-bar-container">
+                            <div class="evolution-bar-container stagger-item">
                                 <div class="evolution-score">${evo.score_affection}%</div>
                                 <div class="evolution-bar" id="${barId}"></div>
                                 <div class="evolution-label">${evo.periode}</div>
@@ -1476,4 +1550,117 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 alert("Données et cache effacés avec succès ! Le site va se recharger pour finaliser la réinitialisation.");
                 window.location.reload();
             }
+        }
+
+        // --- Logique du Mode Présentation (Spotify Wrapped) ---
+        function initPresentationNavigation() {
+            // Identifier les slides réellement visibles (ignore ceux en display: none)
+            const slides = Array.from(document.querySelectorAll('.result-slide')).filter(slide => {
+                return window.getComputedStyle(slide).display !== 'none';
+            });
+
+            const navContainer = document.getElementById('results-nav-dots');
+            if (!navContainer) return;
+            navContainer.innerHTML = '';
+
+            // Générer les puces de navigation latérales
+            slides.forEach((slide, idx) => {
+                const dot = document.createElement('div');
+                dot.className = 'nav-dot';
+                if (idx === 0) dot.classList.add('active');
+                
+                // Nom de la puce basé sur le titre de la section
+                const title = slide.querySelector('h3')?.innerText || `Diapo ${idx + 1}`;
+                dot.title = title;
+
+                dot.onclick = () => {
+                    slide.scrollIntoView({ behavior: 'smooth' });
+                };
+                navContainer.appendChild(dot);
+            });
+
+            // Nettoyage de l'observateur précédent s'il existe
+            if (window.presentationObserver) {
+                window.presentationObserver.disconnect();
+            }
+
+            const observerOptions = {
+                root: document.getElementById('results'),
+                rootMargin: '0px',
+                threshold: 0.5
+            };
+
+            // Observer le défilement et activer les slides / puces correspondants
+            window.presentationObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const activeSlide = entry.target;
+
+                        // Activer le slide courant et désactiver les autres
+                        slides.forEach(s => s.classList.remove('active-slide'));
+                        activeSlide.classList.add('active-slide');
+
+                        // Mettre à jour l'état de la puce
+                        const activeIndex = slides.indexOf(activeSlide);
+                        const dots = navContainer.querySelectorAll('.nav-dot');
+                        dots.forEach((dot, dotIdx) => {
+                            if (dotIdx === activeIndex) {
+                                dot.classList.add('active');
+                            } else {
+                                dot.classList.remove('active');
+                            }
+                        });
+
+                        // Appliquer le fondu en cascade (staggered delay) sur les sous-éléments
+                        const staggerItems = activeSlide.querySelectorAll('.stagger-item');
+                        staggerItems.forEach((item, itemIdx) => {
+                            item.style.transitionDelay = `${itemIdx * 120}ms`;
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            slides.forEach(slide => {
+                window.presentationObserver.observe(slide);
+            });
+
+            // Forcer l'affichage initial et le scroll du premier slide
+            if (slides.length > 0) {
+                slides[0].scrollIntoView({ behavior: 'auto' });
+                slides[0].classList.add('active-slide');
+                const staggerItems = slides[0].querySelectorAll('.stagger-item');
+                staggerItems.forEach((item, itemIdx) => {
+                    item.style.transitionDelay = `${itemIdx * 120}ms`;
+                });
+            }
+        }
+
+        function goBackToForm() {
+            try {
+                SoundEngine.playClick();
+            } catch(e) {}
+
+            if (window.presentationObserver) {
+                window.presentationObserver.disconnect();
+                window.presentationObserver = null;
+            }
+
+            // Réinitialiser les états et classes de présentation
+            document.body.classList.remove('results-active');
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('raw-stats').style.display = 'none';
+
+            const slides = document.querySelectorAll('.result-slide');
+            slides.forEach(s => {
+                s.classList.remove('active-slide');
+                s.querySelectorAll('.stagger-item').forEach(item => {
+                    item.style.transitionDelay = '';
+                });
+            });
+
+            // Afficher à nouveau le formulaire
+            document.getElementById('form-container').style.display = 'block';
+
+            // Scroller le document global vers le haut
+            window.scrollTo({ top: 0, behavior: 'instant' });
         }
