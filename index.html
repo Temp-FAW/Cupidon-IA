@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cupidon IA - Analyseur Instagram & WhatsApp</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+    <div id="canvas-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;"></div>
+    <div class="bg-hearts" id="bg-hearts" style="display: none;"></div>
+    <div class="cursor-glow" id="cursor-glow"></div>
+    <div class="cursor-arrow" id="cursor-arrow">💘</div>
+    <div id="cupid-animation">👼</div>
+    <div class="cupid-arrow" id="cupid-arrow">➡️</div>
+
+    <h1>💘 Cupidon IA</h1>
+    <p>Analysez votre discussion Instagram ou WhatsApp pour découvrir votre compatibilité amoureuse.</p>
+
+    <div class="container">
+        <div class="form-group"
+            style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3);">
+            <label for="apiKeyInput" style="display: flex; justify-content: space-between; align-items: center;">
+                Clé d'API Gemini (Requise) :
+                <div style="display: flex; gap: 5px;">
+                    <button type="button"
+                        onclick="const p = document.getElementById('inline-settings-panel'); if (p.style.maxHeight === '0px' || !p.style.maxHeight) { p.style.maxHeight = '150px'; p.style.opacity = '1'; p.style.marginTop = '15px'; p.style.borderColor = 'rgba(255, 255, 255, 0.1)'; } else { p.style.maxHeight = '0px'; p.style.opacity = '0'; p.style.marginTop = '0px'; p.style.borderColor = 'transparent'; }"
+                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; margin-right: 5px; width: auto; color: #aaa; transition: transform 0.3s, color 0.3s;"
+                        onmouseover="this.style.color='white'; this.style.transform='rotate(45deg)';" onmouseout="this.style.color='#aaa'; this.style.transform='rotate(0deg)';"
+                        title="Paramètres du modèle IA">⚙️</button>
+                    <button type="button"
+                        onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')"
+                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa; transition: color 0.3s;"
+                        onmouseover="this.style.color='white'" onmouseout="this.style.color='#aaa'"
+                        title="Pourquoi utiliser sa propre clé ?">❔</button>
+                </div>
+            </label>
+            <input type="password" id="apiKeyInput" placeholder="AIzaSy..."
+                style="width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: white;">
+            
+            <div id="inline-settings-panel" style="max-height: 0px; opacity: 0; overflow: hidden; margin-top: 0px; padding: 0 15px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid transparent; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
+                <div style="padding: 15px 0;">
+                    <label for="modelSelect" style="color: rgba(255,255,255,0.8); display: block; margin-bottom: 8px; font-size: 0.9rem;">Modèle IA utilisé :</label>
+                    <select id="modelSelect" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); outline: none; appearance: none; cursor: pointer; font-size: 0.95rem;">
+                        <option value="gemini-3.5-flash" style="color: black;" selected>Gemini 3.5 Flash (Le plus performant)</option>
+                        <option value="gemini-3-flash" style="color: black;">Gemini 3 Flash</option>
+                        <option value="gemini-3.1-flash-lite" style="color: black;">Gemini 3.1 Flash Lite (Le plus rapide)</option>
+                        <option value="gemma-4-31b-it" style="color: black;">Gemma 4 31B (Modèle Libre)</option>
+                        <option value="gemma-4-26b-a4b-it" style="color: black;">Gemma 4 26B MoE (Modèle Libre)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="info-note" style="margin-top: 10px;">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                    style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a>
+                Elle sera sauvegardée sur votre navigateur.
+            </div>
+        </div>
+
+        <div class="form-group drop-zone" id="drop-zone">
+            <label for="fileInput" style="display: flex; justify-content: space-between; align-items: center;">
+                Fichiers d'archive : Insta (HTML) ou WhatsApp (TXT)
+                <button type="button"
+                    onclick="alert('Pour Instagram :\nParamètres > Votre activité > Télécharger informations (Format HTML).\n\nPour WhatsApp :\nOuvrez une discussion > Menu > Plus > Exporter discussion (Sans média).\nGlissez le .txt ou .html ici.')"
+                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
+                    title="Comment obtenir mon archive ?">❔</button>
+            </label>
+            <div class="custom-file-wrapper">
+                <input type="file" id="fileInput" accept=".html,.txt" multiple class="hidden-file-input">
+                <label for="fileInput" class="custom-file-label" style="justify-content: center; padding: 15px;">
+                    <span class="file-btn">Sélect. fichiers</span>
+                    <span class="file-name" id="fileNameDisplay">Aucun fichier ou glissez-déposez ici 📂</span>
+                </label>
+            </div>
+            <div class="info-note">Vous pouvez glisser-déposer plusieurs fichiers d'un coup.</div>
+        </div>
+
+        <div class="form-group">
+            <label>Objectif d'évolution de la relation :</label>
+            <div class="goal-selection">
+                <input type="radio" id="goal-amitie" name="goal" value="amitie" checked>
+                <label for="goal-amitie" class="goal-btn">Vers l'Amitié 🤝</label>
+
+                <input type="radio" id="goal-amour" name="goal" value="amour">
+                <label for="goal-amour" class="goal-btn">Vers l'Amour ❤️</label>
+
+                <input type="radio" id="goal-roast" name="goal" value="roast">
+                <label for="goal-roast" class="goal-btn" style="border-color: #ff3333; color: #ff9999;">Mode Roast
+                    😈</label>
+            </div>
+        </div>
+
+        <button id="analyzeBtn" onclick="startAnalysis()">Lancer l'Analyse IA 🪄</button>
+        <button id="resetBtn" class="btn-reset" onclick="resetAppData()">Réinitialiser les données 🗑️</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">Lecture des fichiers en cours...</p>
+        </div>
+
+        <div id="raw-stats"
+            style="display: none; margin-top: 20px; text-align: center; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2);">
+            <h3 style="color: #fff; margin-bottom: 15px;">📊 Statistiques de la conversation</h3>
+            <p><strong>Total de messages :</strong> <span id="stat-total">0</span></p>
+            <div style="display: flex; justify-content: space-around; margin-top: 15px;">
+                <div style="flex: 1;">
+                    <h4 id="stat-name-a" style="color: var(--primary);">Personne A</h4>
+                    <p><span id="stat-pct-a" style="font-size: 1.5rem; font-weight: bold;">0%</span> des messages</p>
+                    <p style="font-size: 1.2rem; margin-top: 5px;" id="stat-emojis-a"></p>
+                </div>
+                <div style="flex: 1;">
+                    <h4 id="stat-name-b" style="color: var(--secondary);">Personne B</h4>
+                    <p><span id="stat-pct-b" style="font-size: 1.5rem; font-weight: bold;">0%</span> des messages</p>
+                    <p style="font-size: 1.2rem; margin-top: 5px;" id="stat-emojis-b"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="results">
+            <div class="scores-grid">
+                <div class="score-card">
+                    <div class="score-label">Compatibilité Globale</div>
+                    <div class="score-value" id="res-compat">0%</div>
+                </div>
+                <div class="score-card">
+                    <div class="score-label" id="label-chance-a">Chance si A déclare</div>
+                    <div class="score-value" id="res-chance-a">0%</div>
+                </div>
+                <div class="score-card">
+                    <div class="score-label" id="label-chance-b">Chance si B déclare</div>
+                    <div class="score-value" id="res-chance-b">0%</div>
+                </div>
+                <div class="score-card" style="background: rgba(0,0,0,0.4);">
+                    <div class="score-label" id="label-orientation-a">Orientation Sexuelle</div>
+                    <div class="score-value" id="res-orientation-a" style="font-size: 2.5rem;">❓ 0%</div>
+                </div>
+                <div class="score-card" style="background: rgba(0,0,0,0.4);">
+                    <div class="score-label" id="label-orientation-b">Orientation Sexuelle</div>
+                    <div class="score-value" id="res-orientation-b" style="font-size: 2.5rem;">❓ 0%</div>
+                </div>
+            </div>
+
+            <div class="analysis-box">
+                <h3>Diagnostic de la Relation 🩺</h3>
+                <div class="affection-level" id="res-affection">Niveau d'affection</div>
+                <p class="text-analysis" id="res-analysis">Analyse en cours...</p>
+            </div>
+
+            <div class="improvement-box" id="topics-box"
+                style="border-left-color: #06d6a0; margin-top: 20px; display: none;">
+                <h3 style="color: #06d6a0;">Principaux Sujets de Discussion 🗣️</h3>
+                <div id="topics-container" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                    <!-- Topics -->
+                </div>
+            </div>
+
+            <div class="improvement-box" id="highlights-box"
+                style="border-left-color: #ffca3a; margin-top: 20px; display: none;">
+                <h3 style="color: #ffca3a;">Moments Forts de la Relation 🌠</h3>
+                <div id="highlights-container"
+                    style="margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Highlights -->
+                </div>
+            </div>
+
+            <div class="improvement-box" id="redflags-box"
+                style="border-left-color: #ff3333; margin-top: 20px; display: none; background: rgba(255, 0, 0, 0.05);">
+                <h3 style="color: #ff3333;">Drapeaux Rouges (Red Flags) 🚩</h3>
+                <div id="redflags-container"
+                    style="margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Red flags -->
+                </div>
+            </div>
+
+            <div class="improvement-box" id="evolution-box" style="border-left-color: #4cc9f0; margin-top: 20px;">
+                <h3 style="color: #4cc9f0;">Évolution de la Relation 📈</h3>
+                <div id="evolution-container"
+                    style="display: flex; justify-content: space-around; align-items: flex-end; height: 180px; margin-top: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <!-- Evolution bars -->
+                </div>
+            </div>
+
+            <div class="improvement-box" id="badges-box"
+                style="margin-top: 20px; border: none; background: transparent; padding: 0;">
+                <h3 style="color: #ffd166; margin-bottom: 15px;">Badges Débloqués 🏆</h3>
+                <div id="badges-container" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <!-- Badges -->
+                </div>
+            </div>
+
+            <div class="improvement-box">
+                <h3 id="improvement-title">Conseils d'Évolution 🌱</h3>
+                <div style="margin-top: 15px;">
+                    <strong id="improvement-title-a"
+                        style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne A :</strong>
+                    <p class="text-analysis" id="improvement-content-a">Analyse en cours...</p>
+                </div>
+                <div style="margin-top: 15px;">
+                    <strong id="improvement-title-b"
+                        style="color: var(--secondary); display: block; margin-bottom: 5px;">Pour Personne B :</strong>
+                    <p class="text-analysis" id="improvement-content-b">Analyse en cours...</p>
+                </div>
+            </div>
+
+            <div class="improvement-box" id="messages-box" style="border-left-color: #ff7096; margin-top: 20px;">
+                <h3 style="color: #ff7096;" id="messages-title">Idées de Message/Relance (Icebreakers) 💬</h3>
+                <ul id="messages-list" style="margin-top: 15px; margin-left: 20px; color: #eee; line-height: 1.6;">
+                    <!-- Messages -->
+                </ul>
+            </div>
+
+            <div class="improvement-box" id="whatif-box" style="border-left-color: #9d4edd; margin-top: 20px;">
+                <h3 style="color: #9d4edd;">Simulateur "Et si..." 🔮</h3>
+                <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 10px;">Demandez à l'IA d'incarner l'autre personne pour voir comment elle réagirait à votre prochain message.</p>
+                
+                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <span style="color: #aaa; align-self: center;">J'incarnerai : </span>
+                    <button id="whatif-toggle-a" onclick="setWhatIfSender('A')" style="padding: 5px 15px; border-radius: 20px; border: 1px solid #ff477e; background: #ff477e; box-shadow: 0 0 12px rgba(255, 71, 126, 0.5); color: white; cursor: pointer; font-weight: bold; transition: all 0.3s;">Personne A</button>
+                    <button id="whatif-toggle-b" onclick="setWhatIfSender('B')" style="padding: 5px 15px; border-radius: 20px; border: 1px solid #9d4edd; background: transparent; color: #888; cursor: pointer; font-weight: bold; transition: all 0.3s;">Personne B</button>
+                    <button onclick="resetWhatIf()" style="padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #aaa; cursor: pointer; transition: all 0.3s; margin-left: auto;">Reset</button>
+                </div>
+
+                <div id="whatif-chat" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 300px; overflow-y: auto; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                </div>
+
+                <div id="whatif-suggestions" style="display: none; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;"></div>
+
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="whatif-input" placeholder="Si je lui envoie : On se voit quand ?" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid rgba(157, 78, 221, 0.5); background: rgba(0,0,0,0.4); color: white; outline: none;" onkeypress="if(event.key === 'Enter') { event.preventDefault(); simulateWhatIf(); }">
+                    <button onclick="simulateWhatIf()" id="whatif-btn" style="width: auto; padding: 12px 20px; background: linear-gradient(45deg, #9d4edd, #c77dff); border-radius: 8px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(157, 78, 221, 0.3);">Simuler</button>
+                </div>
+            </div>
+
+            <div class="improvement-box" id="qa-box" style="border-left-color: #00f5d4; margin-top: 20px;">
+                <h3 style="color: #00f5d4;">Interrogatoire (Q&A avec l'IA) 🕵️</h3>
+                <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 10px;">Posez n'importe quelle question sur votre relation à Cupidon. Il a accès à toute votre conversation !</p>
+                
+                <div id="qa-chat" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 400px; overflow-y: auto; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="qa-input" placeholder="Ex: Pourquoi pense-t-il que je le friendzone ?" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 245, 212, 0.5); background: rgba(0,0,0,0.4); color: white; outline: none;" onkeypress="if(event.key === 'Enter') { event.preventDefault(); askCupid(); }">
+                    <button onclick="askCupid()" id="qa-btn" style="width: auto; padding: 12px 20px; background: linear-gradient(45deg, #00b4d8, #00f5d4); border-radius: 8px; border: none; color: black; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0, 245, 212, 0.3);">Demander</button>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="shareBtn" style="background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); color: white; width: auto; padding: 15px 30px; border-radius: 50px; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2);" onclick="shareStory()" onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1)';">
+                    📸 Sauvegarder pour ma Story
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer
+        style="margin-top: 40px; margin-bottom: 20px; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 10; position: relative;">
+        Cupidon IA © 2026
+        <a href="https://github.com/Temp-FAW/Cupidon-IA" target="_blank"
+            style="color: rgba(255, 255, 255, 0.5); transition: color 0.3s; display: flex; align-items: center; text-decoration: none;"
+            onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'"
+            title="Code source sur GitHub">
+            <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                </path>
+            </svg>
+        </a>
+    </footer>
+
+    <script id="workerScript" type="javascript/worker">
+self.addEventListener('message', async (e) => {
+    const { filesData, selectedModel } = e.data;
+    
+    // Trier les fichiers pour assurer une chronologie globale.
+    // Instagram nomme souvent "message_1.html" pour les fichiers les plus récents (et "message_2.html" pour les plus anciens).
+    filesData.sort((a, b) => {
+        const extA = a.name.split('.').pop().toLowerCase();
+        const extB = b.name.split('.').pop().toLowerCase();
+        if (extA === 'html' && extB === 'html') {
+            return b.name.localeCompare(a.name, undefined, {numeric: true}); // message_2 avant message_1
+        }
+        return a.name.localeCompare(b.name, undefined, {numeric: true});
+    });
+
+    let combinedChatText = "";
+    let globalNames = new Set();
+    let allMessages = [];
+
+    // On parcourt les contenus de fichiers passés
+    for (const file of filesData) {
+        const { name, content } = file;
+        const extension = name.split('.').pop().toLowerCase();
+        
+        let extractedData;
+        if (extension === 'html') {
+            extractedData = extractInstagramHTML(content);
+        } else if (extension === 'txt') {
+            extractedData = extractWhatsAppTXT(content);
+        } else {
+            continue; // Unsupported format via file drop, ignore
+        }
+
+        combinedChatText += extractedData.text + "\n";
+        allMessages = allMessages.concat(extractedData.messages);
+        extractedData.names.forEach(n => globalNames.add(n));
+        
+        // Notify progress if needed
+        self.postMessage({ type: 'progress', message: `Fichier ${name} analysé...` });
+    }
+
+    if (allMessages.length === 0) {
+        self.postMessage({ type: 'error', message: "Impossible de trouver des messages. Assurez-vous d'importer un fichier HTML Instagram ou TXT WhatsApp valide." });
+        return;
+    }
+
+    let personA = "Personne A";
+    let personB = "Personne B";
+    const namesArray = Array.from(globalNames);
+    if (namesArray.length >= 2) {
+        personA = namesArray[0];
+        personB = namesArray[1];
+    } else if (namesArray.length === 1) {
+        personA = namesArray[0];
+    }
+
+    const stats = calculateRawStats(allMessages, personA, personB);
+
+    // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" (uniquement pour les modèles Gemini)
+    const isGemma = selectedModel && selectedModel.startsWith('gemma');
+    if (!isGemma && combinedChatText.length > 700000) {
+        // Garde 100k caractères du début (pour capter la rencontre) et 600k de la fin (pour le contexte ciblé)
+        const head = combinedChatText.substring(0, 100000);
+        const tail = combinedChatText.substring(combinedChatText.length - 600000);
+        combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
+    }
+
+    self.postMessage({
+        type: 'success',
+        result: {
+            combinedChatText,
+            personA,
+            personB,
+            stats,
+            // Keep recent context for "What If" simulation (last 50 messages)
+            recentContext: allMessages.slice(-50).map(m => `${m.author}: ${m.text}`).join('\n'),
+            // Keep real last 5 messages object for pre-filling UI
+            recentMessages: allMessages.slice(-5)
+        }
+    });
+});
+
+function calculateRawStats(allMessages, personA, personB) {
+    let countA = 0, countB = 0;
+    let emojisA = {}, emojisB = {};
+    const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu;
+
+    allMessages.forEach(msg => {
+        const isA = msg.author === personA;
+        if (isA) countA++;
+        else countB++;
+
+        let cleanText = msg.text.replace(/\[(?:REACTION|Réactions|A réagi).*?\]/gi, '');
+
+        const emojis = cleanText.match(emojiRegex) || [];
+        emojis.forEach(e => {
+            if (!['♤', '♡', '♢', '♧', '️'].includes(e)) {
+                if (isA) emojisA[e] = (emojisA[e] || 0) + 1;
+                else emojisB[e] = (emojisB[e] || 0) + 1;
+            }
+        });
+    });
+
+    const getTop3 = (emojiMap) => {
+        return Object.entries(emojiMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(e => e[0])
+            .join(' ') || "";
+    };
+
+    return {
+        total: countA + countB || 1,
+        countA, countB,
+        emojisA: getTop3(emojisA),
+        emojisB: getTop3(emojisB)
+    };
+}
+
+function extractInstagramHTML(htmlString) {
+    let chatText = "";
+    let messages = [];
+    let names = new Set();
+    
+    // Séparation robuste supportant FB DOM updates
+    const blocks = htmlString.split(/class="[^"]*pam _3-95[^"]*_a6-g[^"]*"/);
+    if (blocks.length > 1) {
+        blocks.shift(); // Remove preamble
+    }
+
+    blocks.forEach(block => {
+        let author = "Inconnu";
+        let authorMatch = block.match(/<h2[^>]*>(.*?)<\/h2>/);
+        if(!authorMatch) {
+             authorMatch = block.match(/class="[^"]*_3-94 _2lem[^"]*"[^>]*>(.*?)<\/div>/);
+        }
+        if (authorMatch) {
+            author = stripHtml(authorMatch[1]).trim();
+        }
+
+        let contentIdx = block.indexOf('_a6-p');
+        if (contentIdx !== -1 && author !== "Inconnu") {
+            let contentStart = block.indexOf('>', contentIdx) + 1;
+            let rawContent = block.substring(contentStart);
+            
+            // Extract Reactions (ul._a6-q)
+            let reactionsText = "";
+            const rxReactions = /<ul[^>]*class="[^"]*_a6-q[^"]*"[^>]*>([\s\S]*?)<\/ul>/g;
+            let rxMatch;
+            while ((rxMatch = rxReactions.exec(rawContent)) !== null) {
+                rawContent = rawContent.replace(rxMatch[0], '');
+                reactionsText += ` [REACTION: ${stripHtml(rxMatch[1]).replace(/\s+/g, ' ').trim()}]`;
+            }
+
+            let textContent = stripHtml(rawContent).trim();
+
+            if (textContent.match(/^Reacted\s(.*?)\sto your message|^a réagi\s(.*?)\sà votre message/i)) {
+                const emoji = textContent.replace(/Reacted\s|\sto your message|a réagi\s|\sà votre message/gi, '').trim();
+                textContent = `[A réagi avec ${emoji}]`;
+            } else if (textContent.match(/^Liked a message|^A aimé un message/gi)) {
+                textContent = `[A liké le message]`;
+            }
+
+            let finalContent = (textContent + reactionsText).trim();
+
+            if (finalContent !== "") {
+                messages.push({ author: author, text: finalContent });
+                names.add(author);
+            }
+        }
+    });
+
+    // Les exports Instagram sont souvent récents -> anciens. On inverse pour avoir un ordre chronologique (anciens -> récents).
+    messages.reverse();
+    chatText = messages.map(m => `${m.author}: ${m.text}`).join('\n') + '\n';
+
+    return { text: chatText, names: names, messages: messages };
+}
+
+function extractWhatsAppTXT(txtString) {
+    let chatText = "";
+    let messages = [];
+    let names = new Set();
+
+    // Lignes WhatsApp: [28/03/2026 14:30:00] Nom: Message
+    // Ou: 28/03/2026 14:30 - Nom: Message
+    const lines = txtString.split('\n');
+    const waRegex1 = /^\[\d{2}\/\d{2}\/\d{2,4}[, ]+\d{2}:\d{2}(:\d{2})?\] ([^:]+): (.*)$/;
+    const waRegex2 = /^\d{2}\/\d{2}\/\d{2,4}[, ]+\d{2}:\d{2}(:\d{2})? - ([^:]+): (.*)$/;
+
+    let currentAuthor = null;
+    let currentMessage = "";
+
+    const saveMessage = () => {
+        if (currentAuthor && currentMessage) {
+            chatText += `${currentAuthor}: ${currentMessage}\n`;
+            messages.push({ author: currentAuthor, text: currentMessage.trim() });
+            names.add(currentAuthor);
+        }
+    };
+
+    lines.forEach(line => {
+        let match = line.match(waRegex1) || line.match(waRegex2);
+        if (match) {
+            saveMessage();
+            currentAuthor = match[2].trim();
+            currentMessage = match[3];
+            
+            // Ignorer les messages systèmes
+            if (currentMessage.includes("image omise") || currentMessage.includes("Omitted") || currentMessage.includes("Messages et appels chiffrés de bout en bout")) {
+                currentMessage = "[Média ou système]";
+            }
+        } else {
+            // Continuation du message précédent sur une nouvelle ligne
+            if (currentAuthor) {
+                currentMessage += " " + line.trim();
+            }
+        }
+    });
+    saveMessage(); // Last one
+
+    return { text: chatText, names: names, messages: messages };
+}
+
+function stripHtml(html) {
+    return html.replace(/<[^>]*>?/gm, '');
+}
+    </script>
+    <script src="three-bg.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
