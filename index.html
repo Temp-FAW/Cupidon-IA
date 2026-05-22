@@ -275,7 +275,7 @@
 
     <script id="workerScript" type="javascript/worker">
 self.addEventListener('message', async (e) => {
-    const { filesData } = e.data;
+    const { filesData, selectedModel } = e.data;
     
     // Trier les fichiers pour assurer une chronologie globale.
     // Instagram nomme souvent "message_1.html" pour les fichiers les plus récents (et "message_2.html" pour les plus anciens).
@@ -331,8 +331,9 @@ self.addEventListener('message', async (e) => {
 
     const stats = calculateRawStats(allMessages, personA, personB);
 
-    // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens"
-    if (combinedChatText.length > 700000) {
+    // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" (uniquement pour les modèles Gemini)
+    const isGemma = selectedModel && selectedModel.startsWith('gemma');
+    if (!isGemma && combinedChatText.length > 700000) {
         // Garde 100k caractères du début (pour capter la rencontre) et 600k de la fin (pour le contexte ciblé)
         const head = combinedChatText.substring(0, 100000);
         const tail = combinedChatText.substring(combinedChatText.length - 600000);
