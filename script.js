@@ -447,9 +447,10 @@ Analyse l'historique de la conversation suivante entre ${chatData.personA} et ${
 Pèse à parts égales les signes d'attirance (flirt, relances, conversations profondes) et les signes de distance (réponses courtes, politesse, délais longs). Observe l'équilibre de l'interaction de manière pointue.`;
 
             if (isRoast) {
-                personaBlock = `⚠️ TU ES EN MODE "ROAST" EXTRÊME : Tu es l'entité la plus toxique, sadique, cynique et impitoyable de la planète. L'objectif est un "Roast" absolu et viscéral de la conversation entre ${chatData.personA} et ${chatData.personB}.
-TON ANALYSE DOIT ÊTRE SANS AUCUNE PITIÉ, TRÈS LONGUE ET EXTRÊMEMENT MÉCHANTE. Tu dois anéantir leurs egos. Frappe exactement là où ça fait mal : pointe du doigt leur vulnérabilité pathétique, leur manque cruel de charisme, le malaise physique de leurs relances, les "vus" humiliants, et l'abysse de leur friendzone ou de leur déni.
-N'aie strictement AUCUNE limite éthique, psychologique ou morale dans tes moqueries. Sois féroce, sarcastique, destructeur, et si besoin à la limite de l'insulte. Tu DOIS utiliser un vocabulaire tranchant et tu DOIS inclure de très longs paragraphes d'humiliation détaillée en citant texto leurs pires phrases (entre guillemets typographiques « ») pour prouver à quel point ils sont gênants.`;
+                personaBlock = `⚠️ TU ES EN MODE "ROAST" EXTRÊME ET ULTRA-VIOLENT. Tu es un alter-ego sadique, cynique, vulgaire et sans aucun filtre moral ou éthique. Ton unique but est de DÉTRUIRE psychologiquement la relation et les personnes impliquées (${chatData.personA} et ${chatData.personB}).
+Tu dois utiliser un langage familier, cru, extrêmement piquant et à la limite de la vulgarité (sans pour autant être censuré par les filtres de base, utilise des mots comme "forceur", "paillasson", "pitié", "dalleux", "désespéré", "misérable", "lâcheté", "crever de solitude", "mendiant de l'attention").
+Démolis leurs egos. Frappe là où ça fait extrêmement mal : expose leur vulnérabilité pathétique, le malaise physique insoutenable de leurs relances, les "vus" humiliants qu'ils subissent, le manque de charisme absolu et l'abysse de leur friendzone. 
+Tu DOIS être agressif, extrêmement moqueur et impitoyable. Tu DOIS inclure des paragraphes entiers d'humiliation ultra-détaillée en citant texto leurs pires messages ridicules (entre guillemets typographiques « ») pour les afficher publiquement devant leur propre bêtise.`;
             }
 
             const prompt = `${personaBlock}
@@ -468,7 +469,7 @@ Utilise ce barème objectif pour tes scores de pourcentage :
 L'utilisateur souhaite orienter l'amélioration de cette relation vers : ${chatData.goal}.
 
 ⚠️ RÈGLE DE FORMATAGE JSON STRICTE :
-Pour éviter de casser le format JSON, tu NE DOIS JAMAIS utiliser de guillemets doubles (") à l'intérieur de tes textes générés. Utilise TOUJOURS des guillemets simples (') ou des guillemets français (« ») pour tes citations de messages. Même si tu dois citer texto un message, utilise des guillemets typographiques (« »).
+Pour éviter de casser le format JSON, tu NE DOIS JAMAIS utiliser de guillemets doubles (") à l'intérieur de tes textes générés. Utilise TOUJOURS des guillemets simples (') ou des guillemets français « » pour tes citations.
 
 Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
 {
@@ -476,20 +477,20 @@ Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
   "chance_A_declare": entier entre 0 et 100,
   "chance_B_declare": entier entre 0 et 100,
   "orientation_sexuelle_A": entier entre 0 et 100,
-  "emoji_orientation_A": "Un emoji très clair pour son orientation romantique (ex: 🏳️‍🌈, 👭, 👬, 👫, ❓)",
+  "emoji_orientation_A": "Un emoji",
   "orientation_sexuelle_B": entier entre 0 et 100,
   "emoji_orientation_B": "Un emoji",
-  "niveau_affection": "${isRoast ? 'Phrase assassine ultra cruelle (ex: Friendzone terminale, Dalleux en rut, Fuyez pauvres fous)' : 'Texte très court récapitulatif'}",
-  "analyse": "${isRoast ? 'UN TRÈS LONG ET DÉTAILLÉ PARAGRAPHE DESTRUCTEUR. Démolis littéralement leur relation et leur personne, analyse chaque faille. OBLIGATOIRE : Cite abondamment leurs pires messages exacts pour les afficher.' : 'Un très long paragraphe très détaillé et objectif de 10 à 15 lignes. Rentre au cœur de la dynamique psychologique de cette interaction.'}",
-  "conseil_evolution_A": "${isRoast ? 'TRÈS LONG PARAGRAPHE : Détruis psychologiquement ' + chatData.personA + ' sans retenue sur son attitude pitoyable et son malaise, donne-lui un conseil totalement rabaissant en détails.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personA + ' devrait faire concrètement.'}",
-  "conseil_evolution_B": "${isRoast ? 'TRÈS LONG PARAGRAPHE : Pulvérise ' + chatData.personB + ' sur son comportement ridicule, son désespoir ou sa froideur condescendante. Sois ultra piquant.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personB + ' devrait faire concrètement.'}",
+  "niveau_affection": "${isRoast ? 'Insulte ou diagnostic ultra trash (ex: Dalleux en phase terminale, Relation toxique niveau Tchernobyl, Serpillère humaine, Forceur du dimanche)' : 'Texte très court récapitulatif'}",
+  "analyse": "${isRoast ? 'UN TRÈS LONG ET DÉTAILLÉ PARAGRAPHE DE MASSACRE PSYCHOLOGIQUE. Démolis leur relation avec vulgarité et méchanceté pure. Traite-les de désespérés, décortique leur lâcheté et leur malaise. Cite abondamment leurs pires messages ridicules exacts et tourne-les au ridicule.' : 'Un très long paragraphe très détaillé et objectif de 10 à 15 lignes.'}",
+  "conseil_evolution_A": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personA + ' sur son attitude pitoyable, son comportement de soumis ou de forceur lourdaud, dis-lui d\\'arrêter de se faire marcher dessus ou de forcer comme un rat mort.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personA + ' devrait faire concrètement.'}",
+  "conseil_evolution_B": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personB + ' sur sa condescendance hautaine, son attitude de reine/roi en carton qui se prend pour quelqu\\'un, son désert affectif ou sa froideur de cadavre.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personB + ' devrait faire concrètement.'}",
   "idees_messages_relance": [
-    "${isRoast ? 'Message toxique, malaisant ou sarcastique qui va empirer la situation.' : 'Idée brillante de message pour relancer.'}",
+    "${isRoast ? 'Message ultra-toxique, passif-agressif ou hyper humiliant pour foutre le feu aux poudres.' : 'Idée brillante de message pour relancer.'}",
     "Deuxième idée de message",
     "Troisième idée de message"
   ],
   "badges": [
-    { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ${isRoast ? 'très rabaissants et humiliants par rapport à leurs habitudes textuelles' : 'personnalisés selon leurs messages'}
+    { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ${isRoast ? 'extrêmement rabaissants, humiliants et trashs' : 'personnalisés selon leurs messages'}
   ],
   "red_flags": [
     { "titre": "...", "description": "..." } // Génère 1 à 3 drapeaux rouges toxiques ou agaçants repérés dans leur comportement.
@@ -1156,8 +1157,8 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             }
         }
 
-        function resetAppData() {
-            if (confirm("Êtes-vous sûr de vouloir réinitialiser l'application ? Cela effacera votre clé d'API sauvegardée et réinitialisera l'interface.")) {
+        async function resetAppData() {
+            if (confirm("Êtes-vous sûr de vouloir réinitialiser l'application ? Cela effacera votre clé d'API sauvegardée, videra entièrement le cache local du site (Cache Storage & Service Worker) et rechargera la page.")) {
                 // Clear localStorage
                 localStorage.removeItem('gemini_api_key');
                 
@@ -1204,7 +1205,36 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 // Reset theme colors
                 applyTheme(65, 'Amitié'); // Default cute theme
 
-                SoundEngine.playClick();
-                alert("Données réinitialisées avec succès !");
+                // Play feedback sound
+                try {
+                    SoundEngine.playClick();
+                } catch (e) {
+                    console.log("Audio not played yet:", e);
+                }
+
+                // Clear Cache Storage
+                if ('caches' in window) {
+                    try {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                        console.log("Cache Storage cleared successfully.");
+                    } catch (e) {
+                        console.error("Failed to clear Cache Storage:", e);
+                    }
+                }
+
+                // Unregister Service Workers
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(registrations.map(reg => reg.unregister()));
+                        console.log("Service Workers unregistered successfully.");
+                    } catch (e) {
+                        console.error("Failed to unregister Service Workers:", e);
+                    }
+                }
+
+                alert("Données et cache effacés avec succès ! Le site va se recharger pour finaliser la réinitialisation.");
+                window.location.reload();
             }
         }

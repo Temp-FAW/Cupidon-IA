@@ -1,5 +1,5 @@
 self.addEventListener('message', async (e) => {
-    const { filesData, selectedModel } = e.data;
+    const { filesData } = e.data;
     
     let combinedChatText = "";
     let globalNames = new Set();
@@ -44,23 +44,11 @@ self.addEventListener('message', async (e) => {
 
     const stats = calculateRawStats(allMessages, personA, personB);
 
-    // Gestion de la compression des messages pour éviter les dépassements de limites d'API
-    const isGemma = selectedModel && selectedModel.startsWith('gemma');
-    if (isGemma) {
-        // Les modèles Gemma ont une limite matérielle stricte de 262144 tokens (256K). 
-        // On limite à 720000 caractères (~220k tokens) pour laisser une marge de sécurité pour le prompt système et la réponse.
-        if (combinedChatText.length > 720000) {
-            const head = combinedChatText.substring(0, 100000);
-            const tail = combinedChatText.substring(combinedChatText.length - 620000);
-            combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite de contexte de Gemma (256K tokens)...]\n\n" + tail;
-        }
-    } else {
-        // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" pour Gemini
-        if (combinedChatText.length > 700000) {
-            const head = combinedChatText.substring(0, 100000);
-            const tail = combinedChatText.substring(combinedChatText.length - 600000);
-            combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
-        }
+    // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" pour Gemini
+    if (combinedChatText.length > 700000) {
+        const head = combinedChatText.substring(0, 100000);
+        const tail = combinedChatText.substring(combinedChatText.length - 600000);
+        combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
     }
 
     self.postMessage({

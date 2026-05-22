@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cupidon-ia-v3';
+const CACHE_NAME = 'cupidon-ia';
 const ASSETS = [
     './',
     './index.html',

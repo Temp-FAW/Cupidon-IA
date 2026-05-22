@@ -47,12 +47,12 @@
             <div id="inline-settings-panel" style="max-height: 0px; opacity: 0; overflow: hidden; margin-top: 0px; padding: 0 15px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid transparent; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
                 <div style="padding: 15px 0;">
                     <label for="modelSelect" style="color: rgba(255,255,255,0.8); display: block; margin-bottom: 8px; font-size: 0.9rem;">Modèle IA utilisé :</label>
-                    <select id="modelSelect" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); outline: none; appearance: none; cursor: pointer; font-size: 0.95rem;">
-                        <option value="gemini-3.5-flash" style="color: black;" selected>Gemini 3.5 Flash (Le plus performant)</option>
-                        <option value="gemini-3-flash-preview" style="color: black;">Gemini 3 Flash</option>
-                        <option value="gemini-3.1-flash-lite" style="color: black;">Gemini 3.1 Flash Lite (Le plus rapide)</option>
-                        <option value="gemma-4-31b-it" style="color: black;">Gemma 4 31B (Modèle Libre)</option>
-                        <option value="gemma-4-26b-a4b-it" style="color: black;">Gemma 4 26B MoE (Modèle Libre)</option>
+                    <select id="modelSelect" class="model-select">
+                        <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Le plus performant — Max 20 req/jour)</option>
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash (Équilibré — Max 20 req/jour)</option>
+                        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Le plus rapide — Max 500 req/jour 🚀)</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (Stable — Max 20 req/jour)</option>
+                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Léger — Max 20 req/jour)</option>
                     </select>
                 </div>
             </div>
@@ -332,23 +332,11 @@ self.addEventListener('message', async (e) => {
 
     const stats = calculateRawStats(allMessages, personA, personB);
 
-    // Gestion de la compression des messages pour éviter les dépassements de limites d'API
-    const isGemma = selectedModel && selectedModel.startsWith('gemma');
-    if (isGemma) {
-        // Les modèles Gemma ont une limite matérielle stricte de 262144 tokens (256K). 
-        // On limite à 350000 caractères (~180k-220k tokens pour des tchats denses riches en emojis/métadonnées) pour laisser une marge de sécurité pour le prompt système et la réponse.
-        if (combinedChatText.length > 350000) {
-            const head = combinedChatText.substring(0, 100000);
-            const tail = combinedChatText.substring(combinedChatText.length - 250000);
-            combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite de contexte de Gemma (256K tokens)...]\n\n" + tail;
-        }
-    } else {
-        // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" pour Gemini
-        if (combinedChatText.length > 700000) {
-            const head = combinedChatText.substring(0, 100000);
-            const tail = combinedChatText.substring(combinedChatText.length - 600000);
-            combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
-        }
+    // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" pour Gemini
+    if (combinedChatText.length > 700000) {
+        const head = combinedChatText.substring(0, 100000);
+        const tail = combinedChatText.substring(combinedChatText.length - 600000);
+        combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
     }
 
     self.postMessage({
