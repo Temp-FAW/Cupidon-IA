@@ -246,6 +246,299 @@ const SoundEngine = {
             }
         });
 
+        // --- Fonctions de parsing de secours (Thread Principal) ---
+        function extractInstagramHTML(htmlString) {
+            let chatText = "";
+            let messages = [];
+            let names = new Set();
+            
+            // Séparation robuste supportant FB DOM updates
+            const blocks = htmlString.split(/class="[^"]*pam _3-95[^"]*_a6-g[^"]*"/);
+            if (blocks.length > 1) {
+                blocks.shift(); // Supprime le préambule
+            }
+
+            blocks.forEach(block => {
+                let author = "Inconnu";
+                let authorMatch = block.match(/<h2[^>]*>(.*?)<\/h2>/);
+                if(!authorMatch) {
+                     authorMatch = block.match(/class="[^"]*_3-94 _2lem[^"]*"[^>]*>(.*?)<\/div>/);
+                }
+                if (authorMatch) {
+                    author = stripHtml(authorMatch[1]).trim();
+                }
+
+                let contentIdx = block.indexOf('_a6-p');
+                if (contentIdx !== -1 && author !== "Inconnu") {
+                    let contentStart = block.indexOf('>', contentIdx) + 1;
+                    let rawContent = block.substring(contentStart);
+                    
+                    // Réactions (ul._a6-q)
+                    let reactionsText = "";
+                    const rxReactions = /<ul[^>]*class="[^"]*_a6-q[^"]*"[^>]*>([\s\S]*?)<\/ul>/g;
+                    let rxMatch;
+                    while ((rxMatch = rxReactions.exec(rawContent)) !== null) {
+                        rawContent = rawContent.replace(rxMatch[0], '');
+                        reactionsText += ` [REACTION: ${stripHtml(rxMatch[1]).replace(/\s+/g, ' ').trim()}]`;
+                    }
+
+                    let textContent = stripHtml(rawContent).trim();
+
+                    if (textContent.match(/^Reacted\s(.*?)\sto your message|^a réagi\s(.*?)\sà votre message/i)) {
+                        const emoji = textContent.replace(/Reacted\s|\sto your message|a réagi\s|\sà votre message/gi, '').trim();
+                        textContent = `[A réagi avec ${emoji}]`;
+                    } else if (textContent.match(/^Liked a message|^A aimé un message/gi)) {
+                        textContent = `[A liké le message]`;
+                    }
+
+                    let finalContent = (textContent + reactionsText).trim();
+
+                    if (finalContent !== "") {
+                        messages.push({ author: author, text: finalContent });
+                        names.add(author);
+                    }
+                }
+            });
+
+            // Instagram exporte du plus récent au plus ancien -> Inverser
+            messages.reverse();
+            chatText = messages.map(m => `${m.author}: ${m.text}`).join('\n') + '\n';
+
+            return { text: chatText, names: names, messages: messages };
+        }
+
+        function extractWhatsAppTXT(txtString) {
+            let chatText = "";
+            let messages = [];
+            let names = new Set();
+
+            const lines = txtString.split('\n');
+            const waRegex1 = /^\[\d{2}\/\d{2}\/\d{2,4}[, ]+\d{2}:\d{2}(:\d{2})?\] ([^:]+): (.*)$/;
+            const waRegex2 = /^\d{2}\/\d{2}\/\d{2,4}[, ]+\d{2}:\d{2}(:\d{2})? - ([^:]+): (.*)$/;
+
+            let currentAuthor = null;
+            let currentMessage = "";
+
+            const saveMessage = () => {
+                if (currentAuthor && currentMessage) {
+                    chatText += `${currentAuthor}: ${currentMessage}\n`;
+                    messages.push({ author: currentAuthor, text: currentMessage.trim() });
+                    names.add(currentAuthor);
+                }
+            };
+
+            lines.forEach(line => {
+                let match = line.match(waRegex1) || line.match(waRegex2);
+                if (match) {
+                    saveMessage();
+                    currentAuthor = match[2].trim();
+                    currentMessage = match[3];
+                    
+                    if (currentMessage.includes("image omise") || currentMessage.includes("Omitted") || currentMessage.includes("Messages et appels chiffrés de bout en bout")) {
+                        currentMessage = "[Média ou système]";
+                    }
+                } else {
+                    if (currentAuthor) {
+                        currentMessage += " " + line.trim();
+                    }
+                }
+            });
+            saveMessage(); // Dernier message
+
+            return { text: chatText, names: names, messages: messages };
+        }
+
+        function calculateRawStats(allMessages, personA, personB) {
+            let countA = 0, countB = 0;
+            let emojisA = {}, emojisB = {};
+            const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu;
+
+            allMessages.forEach(msg => {
+                const isA = msg.author === personA;
+                if (isA) countA++;
+                else countB++;
+
+                let cleanText = msg.text.replace(/\[(?:REACTION|Réactions|A réagi).*?\]/gi, '');
+
+                const emojis = cleanText.match(emojiRegex) || [];
+                emojis.forEach(e => {
+                    if (!['♤', '♡', '♢', '♧', '️'].includes(e)) {
+                        if (isA) emojisA[e] = (emojisA[e] || 0) + 1;
+                        else emojisB[e] = (emojisB[e] || 0) + 1;
+                    }
+                });
+            });
+
+            const getTop3 = (emojiMap) => {
+                return Object.entries(emojiMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(e => e[0])
+                    .join(' ') || "";
+            };
+
+            return {
+                total: countA + countB || 1,
+                countA, countB,
+                emojisA: getTop3(emojisA),
+                emojisB: getTop3(emojisB)
+            };
+        }
+
+        function stripHtml(html) {
+            return html.replace(/<[^>]*>?/gm, '');
+        }
+
+        // --- Logique principale de secours (Thread Principal) ---
+        async function runProcessingInMainThread(filesData, selectedModel) {
+            console.log("Exécution de l'analyse sur le thread principal (Fallback)...");
+            
+            // Trier les fichiers
+            filesData.sort((a, b) => {
+                const extA = a.name.split('.').pop().toLowerCase();
+                const extB = b.name.split('.').pop().toLowerCase();
+                if (extA === 'html' && extB === 'html') {
+                    return b.name.localeCompare(a.name, undefined, {numeric: true});
+                }
+                return a.name.localeCompare(b.name, undefined, {numeric: true});
+            });
+
+            let combinedChatText = "";
+            let globalNames = new Set();
+            let allMessages = [];
+
+            const loadingText = document.getElementById('loadingText');
+
+            for (const file of filesData) {
+                const { name, content } = file;
+                const extension = name.split('.').pop().toLowerCase();
+                
+                let extractedData;
+                if (extension === 'html') {
+                    extractedData = extractInstagramHTML(content);
+                } else if (extension === 'txt') {
+                    extractedData = extractWhatsAppTXT(content);
+                } else {
+                    continue;
+                }
+
+                combinedChatText += extractedData.text + "\n";
+                allMessages = allMessages.concat(extractedData.messages);
+                extractedData.names.forEach(n => globalNames.add(n));
+                
+                if (loadingText) {
+                    loadingText.innerText = `Lecture de ${name}...`;
+                }
+            }
+
+            if (allMessages.length === 0) {
+                alert("Impossible de trouver des messages. Assurez-vous d'importer un fichier HTML Instagram ou TXT WhatsApp valide.");
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('analyzeBtn').disabled = false;
+                return;
+            }
+
+            let personA = "Personne A";
+            let personB = "Personne B";
+            const namesArray = Array.from(globalNames);
+            if (namesArray.length >= 2) {
+                personA = namesArray[0];
+                personB = namesArray[1];
+            } else if (namesArray.length === 1) {
+                personA = namesArray[0];
+            }
+
+            const stats = calculateRawStats(allMessages, personA, personB);
+
+            if (combinedChatText.length > 700000) {
+                const head = combinedChatText.substring(0, 100000);
+                const tail = combinedChatText.substring(combinedChatText.length - 600000);
+                combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
+            }
+
+            await finalizeAnalysis({
+                combinedChatText,
+                personA,
+                personB,
+                stats,
+                recentContext: allMessages.slice(-50).map(m => `${m.author}: ${m.text}`).join('\n'),
+                recentMessages: allMessages.slice(-5)
+            });
+        }
+
+        // --- Finalisation commune du parsing ---
+        async function finalizeAnalysis(result) {
+            const { combinedChatText, personA, personB, stats, recentContext, recentMessages } = result;
+            const btn = document.getElementById('analyzeBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const loadingText = document.getElementById('loadingText');
+
+            window.globalRecentContext = recentContext;
+            window.globalRecentMessages = recentMessages || [];
+            window.globalPersonA = personA;
+            window.globalPersonB = personB;
+            window.globalCombinedChatText = combinedChatText;
+
+            document.getElementById('stat-total').innerText = stats.total;
+            document.getElementById('stat-name-a').innerText = personA;
+            document.getElementById('stat-name-b').innerText = personB;
+            document.getElementById('stat-pct-a').innerText = Math.round((stats.countA / stats.total) * 100) + "%";
+            document.getElementById('stat-pct-b').innerText = Math.round((stats.countB / stats.total) * 100) + "%";
+            document.getElementById('stat-emojis-a').innerText = stats.emojisA;
+            document.getElementById('stat-emojis-b').innerText = stats.emojisB;
+            document.getElementById('raw-stats').style.display = 'block';
+
+            const goalSelected = document.querySelector('input[name="goal"]:checked').value;
+            let finalGoal = 'Amour';
+            if (goalSelected === 'amitie') finalGoal = 'Amitié';
+            if (goalSelected === 'roast') finalGoal = 'Roast';
+            window.globalGoal = finalGoal;
+
+            const chatData = {
+                text: combinedChatText,
+                personA: personA,
+                personB: personB,
+                goal: finalGoal
+            };
+
+            loadingText.innerText = `Analyse en cours pour ${personA} et ${personB}... 🤔`;
+            const loadingPhrases = [
+                "Comptage des 'vus'...",
+                "Consultation des oracles...",
+                "Analyse de vos blagues nulles...",
+                "Mesure de la tension amoureuse...",
+                "Recherche des red flags...",
+                "Décodage de vos sous-entendus...",
+                "Recherche d'interdits toxiques..."
+            ];
+            let phraseIndex = 0;
+            const loadingInterval = setInterval(() => {
+                phraseIndex = (phraseIndex + 1) % loadingPhrases.length;
+                loadingText.innerText = `Analyse en cours... 🤔\n${loadingPhrases[phraseIndex]}`;
+            }, 2500);
+
+            try {
+                const aiResult = await callGeminiAPI(chatData);
+                clearInterval(loadingInterval);
+                displayResults(aiResult, chatData);
+
+                loading.style.display = 'none';
+                results.style.display = 'block';
+                btn.disabled = false;
+
+                SoundEngine.playSuccess();
+                playCupidAnimation();
+            } catch (err) {
+                clearInterval(loadingInterval);
+                console.error(err);
+                alert("Erreur IA :\n" + err.message);
+                loading.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        // --- Lancement de l'analyse avec gestion Worker + Fallback ---
         async function startAnalysis() {
             const apiKey = document.getElementById('apiKeyInput').value.trim();
             if (!apiKey) {
@@ -269,8 +562,6 @@ const SoundEngine = {
             results.style.display = 'none';
             loading.style.display = 'block';
 
-            let loadingInterval;
-
             try {
                 loadingText.innerText = `Lecture de ${files.length} fichier(s)...`;
                 
@@ -281,99 +572,47 @@ const SoundEngine = {
                 }
 
                 const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash';
-                const workerScriptCode = document.getElementById('workerScript').textContent;
-                const blob = new Blob([workerScriptCode], { type: "application/javascript" });
-                const worker = new Worker(URL.createObjectURL(blob));
                 
-                worker.postMessage({ filesData, selectedModel });
+                let useWorker = true;
+                let worker;
+                
+                try {
+                    const workerScriptCode = document.getElementById('workerScript').textContent;
+                    const blob = new Blob([workerScriptCode], { type: "application/javascript" });
+                    worker = new Worker(URL.createObjectURL(blob));
+                } catch (workerError) {
+                    console.warn("Impossible d'instancier le Web Worker (sécurité HTTPS/CSP ?). Repli sur le thread principal.", workerError);
+                    useWorker = false;
+                }
 
-                worker.onmessage = async (e) => {
-                    const msg = e.data;
-                    if (msg.type === 'progress') {
-                        loadingText.innerText = msg.message;
-                    } else if (msg.type === 'error') {
-                        alert(msg.message);
-                        loading.style.display = 'none';
-                        btn.disabled = false;
-                        worker.terminate();
-                    } else if (msg.type === 'success') {
-                        const { combinedChatText, personA, personB, stats, recentContext, recentMessages } = msg.result;
-                        
-                        window.globalRecentContext = recentContext;
-                        window.globalRecentMessages = recentMessages || [];
-                        window.globalPersonA = personA;
-                        window.globalPersonB = personB;
-                        window.globalCombinedChatText = combinedChatText;
+                if (useWorker) {
+                    worker.postMessage({ filesData, selectedModel });
 
-                        document.getElementById('stat-total').innerText = stats.total;
-                        document.getElementById('stat-name-a').innerText = personA;
-                        document.getElementById('stat-name-b').innerText = personB;
-                        document.getElementById('stat-pct-a').innerText = Math.round((stats.countA / stats.total) * 100) + "%";
-                        document.getElementById('stat-pct-b').innerText = Math.round((stats.countB / stats.total) * 100) + "%";
-                        document.getElementById('stat-emojis-a').innerText = stats.emojisA;
-                        document.getElementById('stat-emojis-b').innerText = stats.emojisB;
-                        document.getElementById('raw-stats').style.display = 'block';
-
-                        const goalSelected = document.querySelector('input[name="goal"]:checked').value;
-                        let finalGoal = 'Amour';
-                        if (goalSelected === 'amitie') finalGoal = 'Amitié';
-                        if (goalSelected === 'roast') finalGoal = 'Roast';
-                        window.globalGoal = finalGoal;
-
-                        const chatData = {
-                            text: combinedChatText,
-                            personA: personA,
-                            personB: personB,
-                            goal: finalGoal
-                        };
-
-                        loadingText.innerText = `Analyse en cours pour ${personA} et ${personB}... 🤔`;
-                        const loadingPhrases = [
-                            "Comptage des 'vus'...",
-                            "Consultation des oracles...",
-                            "Analyse de vos blagues nulles...",
-                            "Mesure de la tension amoureuse...",
-                            "Recherche des red flags...",
-                            "Décodage de vos sous-entendus...",
-                            "Recherche d'interdits toxiques..."
-                        ];
-                        let phraseIndex = 0;
-                        loadingInterval = setInterval(() => {
-                            phraseIndex = (phraseIndex + 1) % loadingPhrases.length;
-                            loadingText.innerText = `Analyse en cours... 🤔\n${loadingPhrases[phraseIndex]}`;
-                        }, 2500);
-
-                        try {
-                            const aiResult = await callGeminiAPI(chatData);
-                            clearInterval(loadingInterval);
-                            displayResults(aiResult, chatData);
-
-                            loading.style.display = 'none';
-                            results.style.display = 'block';
-                            btn.disabled = false;
-
-                            SoundEngine.playSuccess();
-                            playCupidAnimation();
-                        } catch (err) {
-                            if (loadingInterval) clearInterval(loadingInterval);
-                            console.error(err);
-                            alert("Erreur IA :\n" + err.message);
+                    worker.onmessage = async (e) => {
+                        const msg = e.data;
+                        if (msg.type === 'progress') {
+                            loadingText.innerText = msg.message;
+                        } else if (msg.type === 'error') {
+                            alert(msg.message);
                             loading.style.display = 'none';
                             btn.disabled = false;
+                            worker.terminate();
+                        } else if (msg.type === 'success') {
+                            await finalizeAnalysis(msg.result);
+                            worker.terminate();
                         }
-                        worker.terminate();
-                    }
-                };
+                    };
 
-                worker.onerror = (err) => {
-                    alert("Erreur du Web Worker");
-                    loading.style.display = 'none';
-                    btn.disabled = false;
-                    worker.terminate();
-                };
+                    worker.onerror = async (err) => {
+                        console.warn("Le Web Worker a rencontré une erreur pendant l'exécution. Repli sur le thread principal.", err);
+                        worker.terminate();
+                        await runProcessingInMainThread(filesData, selectedModel);
+                    };
+                } else {
+                    await runProcessingInMainThread(filesData, selectedModel);
+                }
 
             } catch (error) {
-                if (loadingInterval) clearInterval(loadingInterval);
                 console.error("Erreur dans startAnalysis :", error);
                 alert("Une erreur est survenue :\n" + error.message);
                 loading.style.display = 'none';
@@ -482,8 +721,8 @@ Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
   "emoji_orientation_B": "Un emoji",
   "niveau_affection": "${isRoast ? 'Insulte ou diagnostic ultra trash (ex: Dalleux en phase terminale, Relation toxique niveau Tchernobyl, Serpillère humaine, Forceur du dimanche)' : 'Texte très court récapitulatif'}",
   "analyse": "${isRoast ? 'UN TRÈS LONG ET DÉTAILLÉ PARAGRAPHE DE MASSACRE PSYCHOLOGIQUE. Démolis leur relation avec vulgarité et méchanceté pure. Traite-les de désespérés, décortique leur lâcheté et leur malaise. Cite abondamment leurs pires messages ridicules exacts et tourne-les au ridicule.' : 'Un très long paragraphe très détaillé et objectif de 10 à 15 lignes.'}",
-  "conseil_evolution_A": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personA + ' sur son attitude pitoyable, son comportement de soumis ou de forceur lourdaud, dis-lui d\\'arrêter de se faire marcher dessus ou de forcer comme un rat mort.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personA + ' devrait faire concrètement.'}",
-  "conseil_evolution_B": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personB + ' sur sa condescendance hautaine, son attitude de reine/roi en carton qui se prend pour quelqu\\'un, son désert affectif ou sa froideur de cadavre.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personB + ' devrait faire concrètement.'}",
+  "conseil_evolution_A": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personA + ' sur son attitude pitoyable, son comportement de soumis ou de forceur lourdaud, dis-lui d\'arrêter de se faire marcher dessus ou de forcer comme un rat mort.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personA + ' devrait faire concrètement.'}",
+  "conseil_evolution_B": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personB + ' sur sa condescendance hautaine, son attitude de reine/roi en carton qui se prend pour quelqu\'un, son désert affectif ou sa froideur de cadavre.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personB + ' devrait faire concrètement.'}",
   "idees_messages_relance": [
     "${isRoast ? 'Message ultra-toxique, passif-agressif ou hyper humiliant pour foutre le feu aux poudres.' : 'Idée brillante de message pour relancer.'}",
     "Deuxième idée de message",
