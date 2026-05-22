@@ -648,7 +648,7 @@
             top: 0 !important;
             left: 0 !important;
             width: 100vw !important;
-            height: 100vh !important;
+            height: 100dvh !important;
             overflow-y: scroll !important;
             scroll-snap-type: y mandatory !important;
             scroll-behavior: smooth !important;
@@ -660,7 +660,7 @@
         /* Slide style */
         .result-slide {
             width: 100vw;
-            min-height: 100vh;
+            min-height: 100dvh;
             scroll-snap-align: start;
             scroll-snap-stop: always;
             display: flex;
@@ -731,6 +731,7 @@
 
         /* Floating Back Button */
         .floating-back-btn {
+            display: none;
             position: fixed;
             top: 25px;
             left: 25px;
@@ -749,12 +750,15 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
             transform: translateX(-20px);
         }
 
         body.results-active .floating-back-btn {
+            display: block;
             opacity: 1;
+            visibility: visible;
             pointer-events: auto;
             transform: translateX(0);
         }
@@ -777,12 +781,14 @@
             flex-direction: column;
             gap: 12px;
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.5s ease, transform 0.5s ease;
+            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
         }
 
         body.results-active .nav-dots-container {
             opacity: 1;
+            visibility: visible;
             pointer-events: auto;
         }
 
@@ -809,14 +815,198 @@
 
         /* Mobile Adjustments */
         @media (max-width: 768px) {
-            .nav-dots-container {
-                right: 15px;
-                gap: 8px;
+            /* 1. Main container and headings */
+            .container {
+                padding: 20px 16px !important;
+                margin-top: 10px !important;
+                border-radius: 16px !important;
             }
             
+            h1 {
+                font-size: 2rem !important;
+            }
+            
+            p {
+                font-size: 0.9rem !important;
+            }
+
+            /* 2. Goal Selection & Inputs */
+            .goal-selection {
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+
+            .goal-btn {
+                width: 100% !important;
+                padding: 10px !important;
+                font-size: 0.95rem !important;
+                margin-bottom: 0 !important;
+            }
+
+            /* 3. Custom File Selector */
+            .custom-file-label {
+                flex-direction: column !important;
+                gap: 8px !important;
+                text-align: center !important;
+                padding: 12px !important;
+            }
+
+            .file-btn {
+                margin-right: 0 !important;
+                width: 100% !important;
+                text-align: center;
+            }
+
+            .file-name {
+                font-size: 0.85rem !important;
+            }
+
+            /* 4. Slides and Cards */
+            .result-slide {
+                padding: 70px 12px 30px !important;
+                min-height: 100dvh !important;
+            }
+
+            .result-slide > div, 
+            .result-slide > .improvement-box, 
+            .result-slide > .analysis-box {
+                padding: 18px !important;
+                border-radius: 16px !important;
+            }
+
+            .result-slide h3 {
+                font-size: 1.25rem !important;
+                margin-bottom: 10px !important;
+            }
+
+            /* 5. Scores Grid */
+            .scores-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+                margin-bottom: 10px !important;
+                width: 100% !important;
+            }
+
+            .scores-grid .score-card {
+                padding: 10px 8px !important;
+                border-radius: 12px !important;
+            }
+
+            .scores-grid .score-card:last-child {
+                grid-column: span 2 !important;
+            }
+
+            .score-value {
+                font-size: 1.8rem !important;
+                margin: 4px 0 !important;
+            }
+
+            .score-label {
+                font-size: 0.72rem !important;
+            }
+
+            /* 6. Evolution Chart */
+            .result-slide #evolution-container {
+                height: 120px !important;
+                margin-top: 10px !important;
+            }
+
+            .evolution-bar {
+                width: 25px !important;
+            }
+
+            .evolution-score {
+                font-size: 0.75rem !important;
+            }
+
+            .evolution-label {
+                font-size: 0.7rem !important;
+            }
+
+            /* 7. Unlocked Badges */
+            #badges-container {
+                gap: 6px !important;
+            }
+
+            .badge-card {
+                padding: 8px !important;
+                min-width: 80px !important;
+                flex: 1 1 calc(33.333% - 6px) !important;
+                border-radius: 10px !important;
+            }
+
+            .badge-emoji {
+                font-size: 1.6rem !important;
+                margin-bottom: 4px !important;
+            }
+
+            .badge-title {
+                font-size: 0.75rem !important;
+            }
+
+            .badge-desc {
+                font-size: 0.6rem !important;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            /* 8. Simulator ("What If...") & Q&A */
+            #whatif-chat, #qa-chat {
+                max-height: 110px !important;
+                padding: 8px !important;
+                gap: 6px !important;
+                margin-bottom: 8px !important;
+            }
+
+            #whatif-box p, #qa-box p {
+                font-size: 0.8rem !important;
+                margin-bottom: 8px !important;
+                line-height: 1.3 !important;
+            }
+
+            #whatif-input, #qa-input {
+                padding: 10px !important;
+                font-size: 0.85rem !important;
+            }
+
+            #whatif-btn, #qa-btn {
+                padding: 10px 14px !important;
+                font-size: 0.85rem !important;
+            }
+
+            /* Simulator Interactive Suggestions */
+            #whatif-suggestions {
+                gap: 4px !important;
+                margin-bottom: 8px !important;
+                max-height: 60px;
+                overflow-y: auto;
+            }
+
+            #whatif-suggestions button {
+                padding: 4px 8px !important;
+                border-radius: 8px !important;
+                font-size: 0.72rem !important;
+            }
+
+            /* 9. Share / Story Button */
+            #shareBtn {
+                padding: 12px 20px !important;
+                font-size: 1rem !important;
+                width: 100% !important;
+                max-width: 320px !important;
+            }
+
+            /* 10. Navigation Dots and Back button */
+            .nav-dots-container {
+                right: 8px !important;
+                gap: 6px !important;
+            }
+
             .nav-dot {
-                width: 8px;
-                height: 8px;
+                width: 7px !important;
+                height: 7px !important;
             }
 
             .floating-back-btn {
@@ -824,21 +1014,5 @@
                 left: 15px;
                 padding: 8px 16px;
                 font-size: 0.85rem;
-            }
-
-            .result-slide {
-                padding: 80px 15px 40px; /* Top padding leaves space for back button */
-            }
-
-            .result-slide > div, 
-            .result-slide > .improvement-box, 
-            .result-slide > .scores-grid, 
-            .result-slide > .analysis-box {
-                padding: 20px !important;
-                border-radius: 18px !important;
-            }
-
-            .score-value {
-                font-size: 2.2rem !important;
             }
         }
