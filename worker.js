@@ -1,5 +1,6 @@
 self.addEventListener('message', async (e) => {
-    const { filesData } = e.data;
+    const { filesData, limit } = e.data;
+    const finalLimit = limit || 700000;
     
     let combinedChatText = "";
     let globalNames = new Set();
@@ -45,9 +46,9 @@ self.addEventListener('message', async (e) => {
     const stats = calculateRawStats(allMessages, personA, personB);
 
     // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" pour Gemini
-    if (combinedChatText.length > 700000) {
-        const head = combinedChatText.substring(0, 100000);
-        const tail = combinedChatText.substring(combinedChatText.length - 600000);
+    if (combinedChatText.length > finalLimit) {
+        const head = combinedChatText.substring(0, Math.floor(finalLimit / 7));
+        const tail = combinedChatText.substring(combinedChatText.length - Math.floor(finalLimit * 6 / 7));
         combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
     }
 

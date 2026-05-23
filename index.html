@@ -20,13 +20,21 @@
     <div id="cupid-animation" style="pointer-events: none;">👼</div>
     <div class="cupid-arrow" id="cupid-arrow" style="pointer-events: none;">➡️</div>
 
-    <h1>💘 Cupidon IA</h1>
-    <p>Analysez votre discussion Instagram ou WhatsApp pour découvrir votre compatibilité amoureuse.</p>
-
     <button id="backToFormBtn" class="floating-back-btn" onclick="goBackToForm()">⬅️ Retour</button>
     <div id="results-nav-dots" class="nav-dots-container"></div>
 
-    <div class="container" id="form-container">
+    <div class="landing-wrapper" id="landing-wrapper">
+        <h1>💘 Cupidon IA</h1>
+        <p>Analysez votre discussion Instagram ou WhatsApp pour découvrir votre compatibilité amoureuse.</p>
+
+        <div class="container" id="form-container">
+        <!-- Mode Switcher -->
+        <div class="mode-selector" style="position: relative; display: flex; gap: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 5px; border-radius: 12px; box-sizing: border-box;">
+            <div id="modeSliderHighlight" style="position: absolute; width: calc(50% - 5px); height: calc(100% - 10px); top: 5px; left: 5px; background: rgba(255, 71, 126, 0.2); border-radius: 8px; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), background 0.35s; pointer-events: none; z-index: 0;"></div>
+            <button type="button" id="modeStandardBtn" class="mode-tab active" onclick="switchAnalysisMode('standard')" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: #ff477e; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 0.95rem; z-index: 1; position: relative;">💘 Standard</button>
+            <button type="button" id="modeDuelBtn" class="mode-tab" onclick="switchAnalysisMode('duel')" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: #888; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 0.95rem; z-index: 1; position: relative;">⚔️ Mode Duel</button>
+        </div>
+
         <div class="form-group"
             style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3);">
             <label for="apiKeyInput" style="display: flex; justify-content: space-between; align-items: center;">
@@ -64,6 +72,34 @@
                 <a href="https://aistudio.google.com/app/apikey" target="_blank"
                     style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a>
                 Elle sera sauvegardée sur votre navigateur.
+            </div>
+        </div>
+
+        <!-- Duel Mode Drop Zones (hidden by default) -->
+        <div class="duel-zones-container" id="duel-zones" style="display: none; gap: 15px; margin-bottom: 20px;">
+            <div class="form-group drop-zone duel-a" id="drop-zone-a" style="flex: 1; border-color: rgba(255, 71, 126, 0.4); background: rgba(255, 71, 126, 0.02); margin-bottom: 0;">
+                <label for="fileInputA" style="display: flex; justify-content: space-between; align-items: center; color: #ff477e; font-weight: bold; font-size: 0.9rem;">
+                    Discussion Prétendant A
+                </label>
+                <div class="custom-file-wrapper" style="margin-top: 10px;">
+                    <input type="file" id="fileInputA" accept=".html,.txt" multiple class="hidden-file-input" onchange="handleDuelFileSelect('A')">
+                    <label for="fileInputA" class="custom-file-label" style="justify-content: center; padding: 12px; border-color: rgba(255, 71, 126, 0.3);">
+                        <span class="file-btn" style="background: #ff477e; color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-right: 8px;">Sélect.</span>
+                        <span class="file-name" id="fileNameDisplayA" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px;">Aucun fichier 📂</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-group drop-zone duel-b" id="drop-zone-b" style="flex: 1; border-color: rgba(157, 78, 221, 0.4); background: rgba(157, 78, 221, 0.02); margin-bottom: 0;">
+                <label for="fileInputB" style="display: flex; justify-content: space-between; align-items: center; color: #9d4edd; font-weight: bold; font-size: 0.9rem;">
+                    Discussion Prétendant B
+                </label>
+                <div class="custom-file-wrapper" style="margin-top: 10px;">
+                    <input type="file" id="fileInputB" accept=".html,.txt" multiple class="hidden-file-input" onchange="handleDuelFileSelect('B')">
+                    <label for="fileInputB" class="custom-file-label" style="justify-content: center; padding: 12px; border-color: rgba(157, 78, 221, 0.3);">
+                        <span class="file-btn" style="background: #9d4edd; color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-right: 8px;">Sélect.</span>
+                        <span class="file-name" id="fileNameDisplayB" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px;">Aucun fichier 📂</span>
+                    </label>
+                </div>
             </div>
         </div>
 
@@ -110,6 +146,22 @@
             <div class="spinner"></div>
             <p id="loadingText">Lecture des fichiers en cours...</p>
         </div>
+    </div>
+
+    <footer
+        style="margin-top: 40px; margin-bottom: 20px; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 10; position: relative;">
+        Cupidon IA © 2026
+        <a href="https://github.com/Temp-FAW/Cupidon-IA" target="_blank"
+            style="color: rgba(255, 255, 255, 0.5); transition: color 0.3s; display: flex; align-items: center; text-decoration: none;"
+            onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'"
+            title="Code source sur GitHub">
+            <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                </path>
+            </svg>
+        </a>
+    </footer>
     </div>
 
     <div id="results">
@@ -279,8 +331,6 @@
         <!-- Slide 13: Actions -->
         <div class="result-slide" style="text-align: center;">
             <div style="width: 100%; max-width: 650px; margin: 0 auto; padding: 35px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px;">
-                <h3 style="color: #ff477e; margin-bottom: 20px;">💘 Analyse Complétée !</h3>
-                <p style="color: #ccc; margin-bottom: 30px; font-size: 1.05rem; line-height: 1.6;">Félicitations, votre crash-test de relation est prêt. Vous pouvez télécharger une superbe infographie personnalisée optimisée pour Instagram ou WhatsApp en un clic !</p>
                 <button id="shareBtn" style="background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); color: white; width: auto; padding: 15px 35px; border-radius: 50px; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2);" onclick="shareStory()" onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1)';">
                     📸 Sauvegarder pour ma Story
                 </button>
@@ -288,20 +338,9 @@
         </div>
     </div>
 
-    <footer
-        style="margin-top: 40px; margin-bottom: 20px; text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 10; position: relative;">
-        Cupidon IA © 2026
-        <a href="https://github.com/Temp-FAW/Cupidon-IA" target="_blank"
-            style="color: rgba(255, 255, 255, 0.5); transition: color 0.3s; display: flex; align-items: center; text-decoration: none;"
-            onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'"
-            title="Code source sur GitHub">
-            <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
-                <path
-                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
-                </path>
-            </svg>
-        </a>
-    </footer>
+    <div id="results-duel" style="display: none;">
+        <!-- Slide story versus du mode Duel -->
+    </div>
 
     <!-- Badge Detail Modal -->
     <div id="badge-modal" class="badge-modal" onclick="closeBadgeModal()">
@@ -327,7 +366,8 @@
 
     <script id="workerScript" type="javascript/worker">
 self.addEventListener('message', async (e) => {
-    const { filesData, selectedModel } = e.data;
+    const { filesData, selectedModel, limit } = e.data;
+    const finalLimit = limit || 700000;
     
     // Trier les fichiers pour assurer une chronologie globale.
     // Instagram nomme souvent "message_1.html" pour les fichiers les plus récents (et "message_2.html" pour les plus anciens).
@@ -384,9 +424,9 @@ self.addEventListener('message', async (e) => {
     const stats = calculateRawStats(allMessages, personA, personB);
 
     // Compression intelligente pour éviter le crash API "Free Tier limit: 250000 tokens" pour Gemini
-    if (combinedChatText.length > 700000) {
-        const head = combinedChatText.substring(0, 100000);
-        const tail = combinedChatText.substring(combinedChatText.length - 600000);
+    if (combinedChatText.length > finalLimit) {
+        const head = combinedChatText.substring(0, Math.floor(finalLimit / 7));
+        const tail = combinedChatText.substring(combinedChatText.length - Math.floor(finalLimit * 6 / 7));
         combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
     }
 

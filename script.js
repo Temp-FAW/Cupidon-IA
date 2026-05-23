@@ -276,6 +276,68 @@ const SoundEngine = {
             }
         });
 
+        window.analysisMode = 'standard';
+
+        function switchAnalysisMode(mode) {
+            try {
+                SoundEngine.playClick();
+            } catch(e) {}
+            window.analysisMode = mode;
+            const standardBtn = document.getElementById('modeStandardBtn');
+            const duelBtn = document.getElementById('modeDuelBtn');
+            const standardZone = document.getElementById('drop-zone');
+            const duelZones = document.getElementById('duel-zones');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const sliderHighlight = document.getElementById('modeSliderHighlight');
+
+            if (mode === 'duel') {
+                standardBtn.classList.remove('active');
+                standardBtn.style.color = '#888';
+
+                duelBtn.classList.add('active');
+                duelBtn.style.color = '#9d4edd';
+
+                if (sliderHighlight) {
+                    sliderHighlight.style.transform = 'translateX(calc(100% + 10px))';
+                    sliderHighlight.style.background = 'rgba(157, 78, 221, 0.2)';
+                }
+
+                standardZone.style.display = 'none';
+                duelZones.style.display = 'flex';
+                analyzeBtn.innerText = "Lancer le Duel de Choc ! ⚔️";
+            } else {
+                standardBtn.classList.add('active');
+                standardBtn.style.color = '#ff477e';
+
+                duelBtn.classList.remove('active');
+                duelBtn.style.color = '#888';
+
+                if (sliderHighlight) {
+                    sliderHighlight.style.transform = 'translateX(0)';
+                    sliderHighlight.style.background = 'rgba(255, 71, 126, 0.2)';
+                }
+
+                standardZone.style.display = 'block';
+                duelZones.style.display = 'none';
+                analyzeBtn.innerText = "Lancer l'Analyse IA 🪄";
+            }
+        }
+
+        function handleDuelFileSelect(relation) {
+            const input = document.getElementById(`fileInput${relation}`);
+            const display = document.getElementById(`fileNameDisplay${relation}`);
+            if (!input || !display) return;
+
+            const files = input.files;
+            if (files.length === 0) {
+                display.textContent = 'Aucun fichier 📂';
+            } else if (files.length === 1) {
+                display.textContent = files[0].name;
+            } else {
+                display.textContent = `${files.length} fichiers`;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Service worker PWA
             if ('serviceWorker' in navigator) {
@@ -304,13 +366,14 @@ const SoundEngine = {
                 }
             };
 
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
             if (fileInput && dropZone) {
                 fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     dropZone.addEventListener(eventName, preventDefaults, false);
                 });
-                function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
                 ['dragenter', 'dragover'].forEach(eventName => {
                     dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
@@ -321,6 +384,47 @@ const SoundEngine = {
                 dropZone.addEventListener('drop', (e) => {
                     fileInput.files = e.dataTransfer.files;
                     handleFiles(fileInput.files);
+                }, false);
+            }
+
+            // Duel Drag and drop
+            const fileInputA = document.getElementById('fileInputA');
+            const fileNameDisplayA = document.getElementById('fileNameDisplayA');
+            const dropZoneA = document.getElementById('drop-zone-a');
+
+            const fileInputB = document.getElementById('fileInputB');
+            const fileNameDisplayB = document.getElementById('fileNameDisplayB');
+            const dropZoneB = document.getElementById('drop-zone-b');
+
+            if (dropZoneA && fileInputA) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZoneA.addEventListener(eventName, preventDefaults, false);
+                });
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZoneA.addEventListener(eventName, () => dropZoneA.classList.add('dragover'), false);
+                });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZoneA.addEventListener(eventName, () => dropZoneA.classList.remove('dragover'), false);
+                });
+                dropZoneA.addEventListener('drop', (e) => {
+                    fileInputA.files = e.dataTransfer.files;
+                    handleDuelFileSelect('A');
+                }, false);
+            }
+
+            if (dropZoneB && fileInputB) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZoneB.addEventListener(eventName, preventDefaults, false);
+                });
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZoneB.addEventListener(eventName, () => dropZoneB.classList.add('dragover'), false);
+                });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZoneB.addEventListener(eventName, () => dropZoneB.classList.remove('dragover'), false);
+                });
+                dropZoneB.addEventListener('drop', (e) => {
+                    fileInputB.files = e.dataTransfer.files;
+                    handleDuelFileSelect('B');
                 }, false);
             }
         });
@@ -469,9 +573,7 @@ const SoundEngine = {
         }
 
         // --- Logique principale de secours (Thread Principal) ---
-        async function runProcessingInMainThread(filesData, selectedModel) {
-            console.log("Exécution de l'analyse sur le thread principal (Fallback)...");
-            
+        async function runProcessingInMainThreadPromise(filesData, selectedModel, relationLabel = "") {
             // Trier les fichiers
             filesData.sort((a, b) => {
                 const extA = a.name.split('.').pop().toLowerCase();
@@ -506,15 +608,12 @@ const SoundEngine = {
                 extractedData.names.forEach(n => globalNames.add(n));
                 
                 if (loadingText) {
-                    loadingText.innerText = `Lecture de ${name}...`;
+                    loadingText.innerText = (relationLabel ? `[${relationLabel}] ` : "") + `Lecture de ${name}...`;
                 }
             }
 
             if (allMessages.length === 0) {
-                alert("Impossible de trouver des messages. Assurez-vous d'importer un fichier HTML Instagram ou TXT WhatsApp valide.");
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('analyzeBtn').disabled = false;
-                return;
+                throw new Error("Impossible de trouver des messages.");
             }
 
             let personA = "Personne A";
@@ -529,19 +628,68 @@ const SoundEngine = {
 
             const stats = calculateRawStats(allMessages, personA, personB);
 
-            if (combinedChatText.length > 700000) {
-                const head = combinedChatText.substring(0, 100000);
-                const tail = combinedChatText.substring(combinedChatText.length - 600000);
-                combinedChatText = head + "\n\n[...Messages intermédiaires compressés pour respecter la limite du Quota API gratuite...]\n\n" + tail; 
+            const limit = (window.analysisMode === 'duel') ? 100000 : 700000;
+            if (combinedChatText.length > limit) {
+                const head = combinedChatText.substring(0, Math.floor(limit / 7));
+                const tail = combinedChatText.substring(combinedChatText.length - Math.floor(limit * 6 / 7));
+                combinedChatText = head + "\n\n[...Messages compressés...]\n\n" + tail; 
             }
 
-            await finalizeAnalysis({
+            return {
                 combinedChatText,
                 personA,
                 personB,
                 stats,
                 recentContext: allMessages.slice(-50).map(m => `${m.author}: ${m.text}`).join('\n'),
                 recentMessages: allMessages.slice(-5)
+            };
+        }
+
+        async function processFilesData(filesData, selectedModel, relationLabel = "") {
+            const loadingText = document.getElementById('loadingText');
+            return new Promise((resolve, reject) => {
+                let useWorker = true;
+                let worker;
+                
+                try {
+                    const workerScriptCode = document.getElementById('workerScript').textContent;
+                    const blob = new Blob([workerScriptCode], { type: "application/javascript" });
+                    worker = new Worker(URL.createObjectURL(blob));
+                } catch (workerError) {
+                    console.warn("Impossible d'instancier le Web Worker. Repli sur le thread principal.", workerError);
+                    useWorker = false;
+                }
+
+                if (useWorker) {
+                    const limit = (window.analysisMode === 'duel') ? 100000 : 700000;
+                    worker.postMessage({ filesData, selectedModel, limit });
+
+                    worker.onmessage = async (e) => {
+                        const msg = e.data;
+                        if (msg.type === 'progress') {
+                            loadingText.innerText = (relationLabel ? `[${relationLabel}] ` : "") + msg.message;
+                        } else if (msg.type === 'error') {
+                            worker.terminate();
+                            reject(new Error(msg.message));
+                        } else if (msg.type === 'success') {
+                            worker.terminate();
+                            resolve(msg.result);
+                        }
+                    };
+
+                    worker.onerror = async (err) => {
+                        console.warn("Erreur Web Worker, repli thread principal.", err);
+                        worker.terminate();
+                        try {
+                            const res = await runProcessingInMainThreadPromise(filesData, selectedModel, relationLabel);
+                            resolve(res);
+                        } catch (fallbackErr) {
+                            reject(fallbackErr);
+                        }
+                    };
+                } else {
+                    runProcessingInMainThreadPromise(filesData, selectedModel, relationLabel).then(resolve).catch(reject);
+                }
             });
         }
 
@@ -566,7 +714,7 @@ const SoundEngine = {
             document.getElementById('stat-pct-b').innerText = Math.round((stats.countB / stats.total) * 100) + "%";
             document.getElementById('stat-emojis-a').innerText = stats.emojisA;
             document.getElementById('stat-emojis-b').innerText = stats.emojisB;
-            document.getElementById('raw-stats').style.display = 'block';
+            document.getElementById('raw-stats').style.display = 'flex';
 
             const goalSelected = document.querySelector('input[name="goal"]:checked').value;
             let finalGoal = 'Amour';
@@ -634,76 +782,852 @@ const SoundEngine = {
             }
             localStorage.setItem('gemini_api_key', apiKey);
 
-            const files = document.getElementById('fileInput').files;
+            const isDuel = (window.analysisMode === 'duel');
+            const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash';
             const btn = document.getElementById('analyzeBtn');
             const loading = document.getElementById('loading');
-            const results = document.getElementById('results');
             const loadingText = document.getElementById('loadingText');
 
-            if (files.length === 0) {
-                alert("Veuillez sélectionner au moins un fichier d'archive.");
-                return;
-            }
+            if (isDuel) {
+                const filesA = document.getElementById('fileInputA').files;
+                const filesB = document.getElementById('fileInputB').files;
 
-            btn.disabled = true;
-            results.style.display = 'none';
-            loading.style.display = 'block';
+                if (filesA.length === 0 || filesB.length === 0) {
+                    alert("Veuillez sélectionner au moins un fichier d'archive pour CHAQUE relation (A et B).");
+                    return;
+                }
+
+                btn.disabled = true;
+                loading.style.display = 'block';
+                loadingText.innerText = "Lecture des archives du Prétendant A...";
+
+                try {
+                    const filesDataA = [];
+                    for (let i = 0; i < filesA.length; i++) {
+                        const text = await filesA[i].text();
+                        filesDataA.push({ name: filesA[i].name, content: text });
+                    }
+
+                    loadingText.innerText = "Lecture des archives du Prétendant B...";
+                    const filesDataB = [];
+                    for (let i = 0; i < filesB.length; i++) {
+                        const text = await filesB[i].text();
+                        filesDataB.push({ name: filesB[i].name, content: text });
+                    }
+
+                    loadingText.innerText = "Traitement des données de la Relation A...";
+                    const result1 = await processFilesData(filesDataA, selectedModel, "Relation A");
+
+                    loadingText.innerText = "Traitement des données de la Relation B...";
+                    const result2 = await processFilesData(filesDataB, selectedModel, "Relation B");
+
+                    await finalizeDuelAnalysis(result1, result2);
+
+                } catch (error) {
+                    console.error("Erreur dans startAnalysis Duel :", error);
+                    alert("Une erreur est survenue lors du duel :\n" + error.message);
+                    loading.style.display = 'none';
+                    btn.disabled = false;
+                }
+
+            } else {
+                const files = document.getElementById('fileInput').files;
+                const results = document.getElementById('results');
+
+                if (files.length === 0) {
+                    alert("Veuillez sélectionner au moins un fichier d'archive.");
+                    return;
+                }
+
+                btn.disabled = true;
+                results.style.display = 'none';
+                loading.style.display = 'block';
+
+                try {
+                    loadingText.innerText = `Lecture de ${files.length} fichier(s)...`;
+                    
+                    const filesData = [];
+                    for (let i = 0; i < files.length; i++) {
+                        const text = await files[i].text();
+                        filesData.push({ name: files[i].name, content: text });
+                    }
+
+                    const result = await processFilesData(filesData, selectedModel);
+                    await finalizeAnalysis(result);
+
+                } catch (error) {
+                    console.error("Erreur dans startAnalysis Standard :", error);
+                    alert("Une erreur est survenue :\n" + error.message);
+                    loading.style.display = 'none';
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        async function finalizeDuelAnalysis(result1, result2) {
+            const btn = document.getElementById('analyzeBtn');
+            const loading = document.getElementById('loading');
+            const resultsDuel = document.getElementById('results-duel');
+            const loadingText = document.getElementById('loadingText');
+
+            window.duelResult1 = result1;
+            window.duelResult2 = result2;
+
+            const goalSelected = document.querySelector('input[name="goal"]:checked').value;
+            let finalGoal = 'Amour';
+            if (goalSelected === 'amitie') finalGoal = 'Amitié';
+            if (goalSelected === 'roast') finalGoal = 'Roast';
+            window.globalGoal = finalGoal;
+
+            loadingText.innerText = `Lancement de la confrontation amoureuse... ⚔️\nCupidon arbitre le match entre ${result1.personB} et ${result2.personB}...`;
+            
+            const loadingPhrases = [
+                "Comparaison des temps de réponse...",
+                "Calcul des coefficients de friendzone...",
+                "Examen des red flags mutuels...",
+                "Mesure de la ferveur amoureuse...",
+                "Cupidon aiguise ses flèches...",
+                "Délibération finale de l'oracle..."
+            ];
+            let phraseIndex = 0;
+            const loadingInterval = setInterval(() => {
+                phraseIndex = (phraseIndex + 1) % loadingPhrases.length;
+                loadingText.innerText = `Analyse du Duel... ⚔️\n${loadingPhrases[phraseIndex]}`;
+            }, 2500);
 
             try {
-                loadingText.innerText = `Lecture de ${files.length} fichier(s)...`;
-                
-                const filesData = [];
-                for (let i = 0; i < files.length; i++) {
-                    const text = await files[i].text();
-                    filesData.push({ name: files[i].name, content: text });
-                }
+                const duelData = await callGeminiDuelAPI(result1, result2, finalGoal);
+                clearInterval(loadingInterval);
 
-                const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash';
-                
-                let useWorker = true;
-                let worker;
-                
-                try {
-                    const workerScriptCode = document.getElementById('workerScript').textContent;
-                    const blob = new Blob([workerScriptCode], { type: "application/javascript" });
-                    worker = new Worker(URL.createObjectURL(blob));
-                } catch (workerError) {
-                    console.warn("Impossible d'instancier le Web Worker (sécurité HTTPS/CSP ?). Repli sur le thread principal.", workerError);
-                    useWorker = false;
-                }
+                displayDuelResults(duelData, result1, result2);
 
-                if (useWorker) {
-                    worker.postMessage({ filesData, selectedModel });
+                saveDuelToHistory(duelData, result1, result2, finalGoal);
 
-                    worker.onmessage = async (e) => {
-                        const msg = e.data;
-                        if (msg.type === 'progress') {
-                            loadingText.innerText = msg.message;
-                        } else if (msg.type === 'error') {
-                            alert(msg.message);
-                            loading.style.display = 'none';
-                            btn.disabled = false;
-                            worker.terminate();
-                        } else if (msg.type === 'success') {
-                            await finalizeAnalysis(msg.result);
-                            worker.terminate();
-                        }
-                    };
+                loading.style.display = 'none';
+                resultsDuel.style.display = 'block';
+                btn.disabled = false;
 
-                    worker.onerror = async (err) => {
-                        console.warn("Le Web Worker a rencontré une erreur pendant l'exécution. Repli sur le thread principal.", err);
-                        worker.terminate();
-                        await runProcessingInMainThread(filesData, selectedModel);
-                    };
-                } else {
-                    await runProcessingInMainThread(filesData, selectedModel);
-                }
+                document.getElementById('form-container').style.display = 'none';
+                document.body.classList.add('results-duel-active');
+                initPresentationDuelNavigation();
 
-            } catch (error) {
-                console.error("Erreur dans startAnalysis :", error);
-                alert("Une erreur est survenue :\n" + error.message);
+                SoundEngine.playSuccess();
+                playCupidAnimation();
+            } catch (err) {
+                clearInterval(loadingInterval);
+                console.error(err);
+                alert("Erreur IA dans le Duel :\n" + err.message);
                 loading.style.display = 'none';
                 btn.disabled = false;
+            }
+        }
+
+        async function callGeminiDuelAPI(result1, result2, goal) {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const selectedModel = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash';
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+
+            // Déterminer les 3 personnes distinctes
+            const names1 = [result1.personA, result1.personB];
+            const names2 = [result2.personA, result2.personB];
+
+            let centralUser = result1.personA;
+            let pretenderA = result1.personB;
+            let pretenderB = result2.personB;
+
+            const intersection = names1.filter(n => names2.includes(n));
+            if (intersection.length > 0) {
+                centralUser = intersection[0];
+                pretenderA = names1.find(n => n !== centralUser) || result1.personB;
+                pretenderB = names2.find(n => n !== centralUser) || result2.personB;
+            } else {
+                if (result1.personA === result2.personA) {
+                    centralUser = result1.personA;
+                    pretenderA = result1.personB;
+                    pretenderB = result2.personB;
+                } else if (result1.personB === result2.personB) {
+                    centralUser = result1.personB;
+                    pretenderA = result1.personA;
+                    pretenderB = result2.personA;
+                }
+            }
+
+            const isRoast = (goal === 'Roast');
+            
+            let personaBlock = `Tu es Cupidon, l'arbitre suprême de l'amour, doté d'un œil de lynx psychologique et d'un humour décapant. 
+        Tu vas comparer deux relations différentes de ${centralUser} (qui est l'utilisateur principal présent dans les deux discussions) :
+        1. Relation avec ${pretenderA}
+        2. Relation avec ${pretenderB}
+
+        Il y a donc 3 personnes distinctes impliquées :
+        - ${centralUser} (l'utilisateur principal commun)
+        - ${pretenderA} (Prétendant A)
+        - ${pretenderB} (Prétendant B)
+
+        Fais une analyse comparative extrêmement longue, détaillée et croustillante. Ne retiens pas tes coups !
+        Sois hilarant, sarcastique mais d'une pertinence psychologique absolue. Pèse objectivement les trois personnes.
+        Pour chaque aspect (affection, red flags, green flags, expressions), fournis une évaluation distincte pour CHACUN des 3 protagonistes.`;
+
+            if (isRoast) {
+                personaBlock = `⚠️ TU ES SATAN, LE ROASTER DIABOLIQUE DES RELATIONS. Ton but est de détruire ces relations avec férocité.
+        Tu vas comparer les relations de ${centralUser} (l'utilisateur principal présent dans les deux discussions) avec ${pretenderA} et ${pretenderB}.
+        Il y a donc 3 personnes distinctes impliquées :
+        - ${centralUser} (l'utilisateur principal commun)
+        - ${pretenderA} (Prétendant A)
+        - ${pretenderB} (Prétendant B)
+
+        Dans cette confrontation de pitié, tu dois désigner **LE PLUS GROS CONNARD** de l'histoire (le plus toxique, le plus égoïste, le pire protagoniste, ou celui qui se comporte le plus mal). 
+        ⚠️ IMPORTANT : Le plus gros connard peut être l'un des prétendants (${pretenderA} ou ${pretenderB}), mais cela peut aussi être l'utilisateur principal lui-même (${centralUser}) s'il se comporte comme une ordure avec eux !
+        Sois impitoyable. Pour chaque slide ou aspect, tu dois donner une évaluation acide et drôle pour CHACUNE des 3 personnes.
+        Utilise un langage familier, cru, et hyper acide (ex: serpillère, forceur, égo surdimensionné, toxique). Tourne en dérision les défauts et cite-les copieusement.`;
+            }
+
+            const prompt = `${personaBlock}
+
+        Voici les données de la relation 1 entre ${centralUser} et ${pretenderA} :
+        - Total de messages : ${result1.stats.total}
+        - Extrait de la conversation réelle :
+        ${result1.combinedChatText}
+
+        Voici les données de la relation 2 entre ${centralUser} et ${pretenderB} :
+        - Total de messages : ${result2.stats.total}
+        - Extrait de la conversation réelle :
+        ${result2.combinedChatText}
+
+        L'utilisateur souhaite orienter sa vie vers : ${goal}.
+
+        ⚠️ RÈGLE DE FORMATAGE JSON STRICTE :
+        Pour éviter de casser le format JSON, tu NE DOIS JAMAIS utiliser de guillemets doubles (") à l'intérieur de tes textes générés. Utilise TOUJOURS des guillemets simples (') ou des guillemets français « » pour tes citations.
+
+        Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
+        {
+          "score_compat_A": entier entre 0 et 100,
+          "score_compat_B": entier entre 0 et 100,
+          "affection_level_A": "court label humoristique sur ${pretenderA}",
+          "affection_level_B": "court label humoristique sur ${pretenderB}",
+          "affection_level_Central": "court label humoristique sur ${centralUser}",
+          "red_flags_A": [ "1 à 2 drapeaux rouges chez ${pretenderA}" ],
+          "red_flags_B": [ "1 à 2 drapeaux rouges chez ${pretenderB}" ],
+          "red_flags_Central": [ "1 à 2 drapeaux rouges chez ${centralUser}" ],
+          "green_flags_A": [ "1 à 2 points forts chez ${pretenderA}" ],
+          "green_flags_B": [ "1 à 2 points forts chez ${pretenderB}" ],
+          "green_flags_Central": [ "1 à 2 points forts chez ${centralUser}" ],
+          "surnoms_A": "surnoms/expressions de ${pretenderA}",
+          "surnoms_B": "surnoms/expressions de ${pretenderB}",
+          "surnoms_Central": "surnoms/expressions de ${centralUser}",
+          "analyse_duel": "${isRoast ? 'Une comparaison au vitriol des trois personnes.' : "Une analyse comparative globale de 8-12 lignes décrivant l'opposition de style."}",
+          "verdict_gagnant": "${isRoast ? 'Le nom exact de celui qui est le plus gros connard (soit ' + pretenderA + ', soit ' + pretenderB + ', soit ' + centralUser + ')' : 'Le nom exact du vainqueur (soit ' + pretenderA + ', soit ' + pretenderB + ', soit Match Nul 💀)'}",
+          "verdict_detail": "${isRoast ? 'La justification démoniaque et drôle expliquant pourquoi cette personne remporte la palme du pire connard.' : "La justification ultime et croustillante expliquant pourquoi c'est le meilleur choix de vie."}"
+        }`;
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        response_mime_type: "application/json",
+                        temperature: 0.8
+                    },
+                    safetySettings: [
+                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                let errorMsg = `Code HTTP ${response.status}`;
+                try {
+                    const errInfo = await response.json();
+                    errorMsg = errInfo.error.message || errorMsg;
+                } catch (e) {}
+                throw new Error("Erreur API Gemini Duel : " + errorMsg);
+            }
+
+            const data = await response.json();
+            let rawText = data.candidates[0].content.parts[0].text;
+
+            const startIndex = rawText.indexOf('{');
+            const endIndex = rawText.lastIndexOf('}');
+
+            if (startIndex !== -1 && endIndex !== -1) {
+                rawText = rawText.substring(startIndex, endIndex + 1);
+            }
+
+            return JSON.parse(rawText);
+        }
+
+        function displayDuelResults(duelData, result1, result2) {
+            const container = document.getElementById('results-duel');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            // Déterminer les 3 personnes distinctes
+            const names1 = [result1.personA, result1.personB];
+            const names2 = [result2.personA, result2.personB];
+
+            let centralUser = result1.personA;
+            let pretenderA = result1.personB;
+            let pretenderB = result2.personB;
+
+            const intersection = names1.filter(n => names2.includes(n));
+            if (intersection.length > 0) {
+                centralUser = intersection[0];
+                pretenderA = names1.find(n => n !== centralUser) || result1.personB;
+                pretenderB = names2.find(n => n !== centralUser) || result2.personB;
+            } else {
+                if (result1.personA === result2.personA) {
+                    centralUser = result1.personA;
+                    pretenderA = result1.personB;
+                    pretenderB = result2.personB;
+                } else if (result1.personB === result2.personB) {
+                    centralUser = result1.personB;
+                    pretenderA = result1.personA;
+                    pretenderB = result2.personA;
+                }
+            }
+
+            // Exposer pour accès global
+            window.duelCentralUser = centralUser;
+            window.duelPretenderA = pretenderA;
+            window.duelPretenderB = pretenderB;
+
+            const winnerName = duelData.verdict_gagnant;
+            const isWinner1 = (winnerName === pretenderA);
+            const isWinner2 = (winnerName === pretenderB);
+            const isWinnerCentral = (winnerName === centralUser);
+            const isMatchNul = !isWinner1 && !isWinner2 && !isWinnerCentral;
+            const isRoast = (window.globalGoal === 'Roast');
+
+            // Extraction correcte des statistiques par personne
+            let msgCountCentral = 0;
+            let msgCountPretenderA = 0;
+            let msgCountPretenderB = 0;
+
+            let emojiCentral = "💬";
+            let emojiPretenderA = "💬";
+            let emojiPretenderB = "💬";
+
+            if (result1.personA === centralUser) {
+                msgCountCentral += result1.stats.countA;
+                msgCountPretenderA = result1.stats.countB;
+                emojiCentral = result1.stats.emojisA || emojiCentral;
+                emojiPretenderA = result1.stats.emojisB || emojiPretenderA;
+            } else {
+                msgCountCentral += result1.stats.countB;
+                msgCountPretenderA = result1.stats.countA;
+                emojiCentral = result1.stats.emojisB || emojiCentral;
+                emojiPretenderA = result1.stats.emojisA || emojiPretenderA;
+            }
+
+            if (result2.personA === centralUser) {
+                msgCountCentral += result2.stats.countA;
+                msgCountPretenderB = result2.stats.countB;
+                emojiPretenderB = result2.stats.emojisB || emojiPretenderB;
+            } else {
+                msgCountCentral += result2.stats.countB;
+                msgCountPretenderB = result2.stats.countA;
+                emojiPretenderB = result2.stats.emojisA || emojiPretenderB;
+            }
+
+            // Slide 1: Stats Versus (3 personnes)
+            const slide1HTML = `
+                <div class="result-slide duel-slide active-slide" id="duel-slide-stats">
+                    <div style="width: 100%; max-width: 650px; margin: auto auto !important; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <h3 style="color: #ffd166; margin-bottom: 20px; text-align: center; font-size: 1.5rem;">📊 Versus : Statistiques Brutes</h3>
+                        <div class="versus-arena" style="display: flex; align-items: stretch; justify-content: space-between; gap: 12px; margin-top: 15px;">
+                            <!-- Prétendant A -->
+                            <div style="text-align: center; flex: 1; background: rgba(255, 71, 126, 0.05); padding: 15px; border-radius: 12px; border: 1px dashed rgba(255, 71, 126, 0.3);" class="stagger-item">
+                                <h4 style="color: #ff477e; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px;">${pretenderA}</h4>
+                                <div style="font-size: 1.8rem; font-weight: bold; margin: 8px 0; color: #ff477e;">${msgCountPretenderA}</div>
+                                <p style="font-size: 0.8rem; color: #aaa; margin: 0 0 10px 0;">Messages</p>
+                                <div style="font-size: 1.8rem; margin-top: 10px;">${emojiPretenderA}</div>
+                                <p style="font-size: 0.8rem; color: #aaa; margin: 5px 0 0 0;">Emojis favoris</p>
+                            </div>
+                            
+                            <!-- Utilisateur Principal -->
+                            <div style="text-align: center; flex: 1; background: rgba(255, 208, 102, 0.05); padding: 15px; border-radius: 12px; border: 1px dashed rgba(255, 208, 102, 0.3);" class="stagger-item">
+                                <h4 style="color: #ffd166; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px;">${centralUser}</h4>
+                                <div style="font-size: 1.8rem; font-weight: bold; margin: 8px 0; color: #ffd166;">${msgCountCentral}</div>
+                                <p style="font-size: 0.8rem; color: #aaa; margin: 0 0 10px 0;">Messages (Total)</p>
+                                <div style="font-size: 1.8rem; margin-top: 10px;">${emojiCentral}</div>
+                                <p style="font-size: 0.8rem; color: #aaa; margin: 5px 0 0 0;">Emojis favoris</p>
+                            </div>
+                            
+                            <!-- Prétendant B -->
+                            <div style="text-align: center; flex: 1; background: rgba(157, 78, 221, 0.05); padding: 15px; border-radius: 12px; border: 1px dashed rgba(157, 78, 221, 0.3);" class="stagger-item">
+                                <h4 style="color: #9d4edd; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px;">${pretenderB}</h4>
+                                <div style="font-size: 1.8rem; font-weight: bold; margin: 8px 0; color: #9d4edd;">${msgCountPretenderB}</div>
+                                <p style="font-size: 0.8rem; color: #aaa; margin: 0 0 10px 0;">Messages</p>
+                                <div style="font-size: 1.8rem; margin-top: 10px;">${emojiPretenderB}</div>
+                                <p style="font-size: 0.8rem; color: #aaa; margin: 5px 0 0 0;">Emojis favoris</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Slide 2: Match des Scores (Compatibilité & Affection pour les 3)
+            const slide2HTML = `
+                <div class="result-slide duel-slide" id="duel-slide-scores">
+                    <div style="width: 100%; max-width: 650px; margin: auto auto !important; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <h3 style="color: #4cc9f0; margin-bottom: 25px; text-align: center; font-size: 1.5rem;">💘 Match des Scores IA</h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <div class="stagger-item" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 15px; padding: 15px;">
+                                <div style="text-align: center; font-size: 0.9rem; color: #ccc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Compatibilité avec ${centralUser}</div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                                    <div style="flex: 1; text-align: right; color: #ff477e; font-size: 1.6rem; font-weight: bold;">${pretenderA} : ${duelData.score_compat_A}%</div>
+                                    <div style="font-size: 1.2rem; color: #ffd166;">⚡</div>
+                                    <div style="flex: 1; text-align: left; color: #9d4edd; font-size: 1.6rem; font-weight: bold;">${pretenderB} : ${duelData.score_compat_B}%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stagger-item" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 15px; padding: 15px;">
+                                <div style="text-align: center; font-size: 0.9rem; color: #ccc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Niveau d'Affection IA</div>
+                                <div style="display: flex; align-items: stretch; justify-content: space-between; gap: 10px;">
+                                    <!-- Prétendant A -->
+                                    <div style="flex: 1; text-align: center;">
+                                        <div style="font-size: 0.8rem; color: #ff477e; font-weight: bold; margin-bottom: 5px;">${pretenderA}</div>
+                                        <div style="color: #ffb3c6; font-size: 0.9rem; font-weight: bold; word-break: break-word;">${duelData.affection_level_A}</div>
+                                    </div>
+                                    <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                                    <!-- Utilisateur Principal -->
+                                    <div style="flex: 1; text-align: center;">
+                                        <div style="font-size: 0.8rem; color: #ffd166; font-weight: bold; margin-bottom: 5px;">${centralUser}</div>
+                                        <div style="color: #ffe599; font-size: 0.9rem; font-weight: bold; word-break: break-word;">${duelData.affection_level_Central || 'Neutre'}</div>
+                                    </div>
+                                    <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                                    <!-- Prétendant B -->
+                                    <div style="flex: 1; text-align: center;">
+                                        <div style="font-size: 0.8rem; color: #9d4edd; font-weight: bold; margin-bottom: 5px;">${pretenderB}</div>
+                                        <div style="color: #e0b0ff; font-size: 0.9rem; font-weight: bold; word-break: break-word;">${duelData.affection_level_B}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Slide 3: Le Ring des Flags (3 personnes)
+            const redFlagsA = (duelData.red_flags_A || []).map(f => `<div style="background: rgba(255,51,51,0.08); border: 1px solid rgba(255,51,51,0.2); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.85rem; color: #ff9999; text-align: left;">🚩 ${f}</div>`).join('');
+            const greenFlagsA = (duelData.green_flags_A || []).map(f => `<div style="background: rgba(6,214,160,0.08); border: 1px solid rgba(6,214,160,0.2); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.85rem; color: #7bf1a8; text-align: left;">💚 ${f}</div>`).join('');
+
+            const redFlagsCentral = (duelData.red_flags_Central || []).map(f => `<div style="background: rgba(255,51,51,0.08); border: 1px solid rgba(255,51,51,0.2); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.85rem; color: #ff9999; text-align: left;">🚩 ${f}</div>`).join('');
+            const greenFlagsCentral = (duelData.green_flags_Central || []).map(f => `<div style="background: rgba(6,214,160,0.08); border: 1px solid rgba(6,214,160,0.2); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.85rem; color: #7bf1a8; text-align: left;">💚 ${f}</div>`).join('');
+
+            const redFlagsB = (duelData.red_flags_B || []).map(f => `<div style="background: rgba(255,51,51,0.08); border: 1px solid rgba(255,51,51,0.2); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.85rem; color: #ff9999; text-align: left;">🚩 ${f}</div>`).join('');
+            const greenFlagsB = (duelData.green_flags_B || []).map(f => `<div style="background: rgba(6,214,160,0.08); border: 1px solid rgba(6,214,160,0.2); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.85rem; color: #7bf1a8; text-align: left;">💚 ${f}</div>`).join('');
+
+            const slide3HTML = `
+                <div class="result-slide duel-slide" id="duel-slide-flags">
+                    <div style="width: 100%; max-width: 650px; margin: auto auto !important; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2); max-height: calc(100dvh - 120px); overflow-y: auto;">
+                        <h3 style="color: #ff477e; margin-bottom: 20px; text-align: center; font-size: 1.5rem;">⛳ Le Ring des Flags</h3>
+                        
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <!-- Prétendant A -->
+                            <div style="flex: 1; min-width: 180px;" class="stagger-item">
+                                <h4 style="color: #ff477e; text-align: center; margin-bottom: 12px; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pretenderA}</h4>
+                                ${greenFlagsA || '<div style="color:#888; font-size:0.8rem; text-align:center; padding:10px;">Aucun point fort</div>'}
+                                ${redFlagsA || '<div style="color:#888; font-size:0.8rem; text-align:center; padding:10px;">Aucun drapeau rouge</div>'}
+                            </div>
+                            
+                            <div style="width: 1px; background: rgba(255,255,255,0.1); align-self: stretch;"></div>
+                            
+                            <!-- Utilisateur Principal -->
+                            <div style="flex: 1; min-width: 180px;" class="stagger-item">
+                                <h4 style="color: #ffd166; text-align: center; margin-bottom: 12px; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${centralUser}</h4>
+                                ${greenFlagsCentral || '<div style="color:#888; font-size:0.8rem; text-align:center; padding:10px;">Aucun point fort</div>'}
+                                ${redFlagsCentral || '<div style="color:#888; font-size:0.8rem; text-align:center; padding:10px;">Aucun drapeau rouge</div>'}
+                            </div>
+                            
+                            <div style="width: 1px; background: rgba(255,255,255,0.1); align-self: stretch;"></div>
+                            
+                            <!-- Prétendant B -->
+                            <div style="flex: 1; min-width: 180px;" class="stagger-item">
+                                <h4 style="color: #9d4edd; text-align: center; margin-bottom: 12px; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pretenderB}</h4>
+                                ${greenFlagsB || '<div style="color:#888; font-size:0.8rem; text-align:center; padding:10px;">Aucun point fort</div>'}
+                                ${redFlagsB || '<div style="color:#888; font-size:0.8rem; text-align:center; padding:10px;">Aucun drapeau rouge</div>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Slide 4: Surnoms (3 personnes)
+            const slide4HTML = `
+                <div class="result-slide duel-slide" id="duel-slide-dialect">
+                    <div style="width: 100%; max-width: 650px; margin: auto auto !important; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2); max-height: calc(100dvh - 120px); overflow-y: auto;">
+                        <h3 style="color: #06d6a0; margin-bottom: 20px; text-align: center; font-size: 1.5rem;">🗣️ Surnoms & Expressions</h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <div class="stagger-item" style="border-left: 4px solid #ff477e; background: rgba(255,71,126,0.04); padding: 12px; border-radius: 0 12px 12px 0;">
+                                <h4 style="color: #ff477e; margin-bottom: 5px; font-size: 0.95rem;">Chez ${pretenderA} :</h4>
+                                <p style="color: #eee; font-style: italic; font-size: 0.9rem;">${duelData.surnoms_A || 'Rien de particulier'}</p>
+                            </div>
+
+                            <div class="stagger-item" style="border-left: 4px solid #ffd166; background: rgba(255,208,102,0.04); padding: 12px; border-radius: 0 12px 12px 0;">
+                                <h4 style="color: #ffd166; margin-bottom: 5px; font-size: 0.95rem;">Chez ${centralUser} :</h4>
+                                <p style="color: #eee; font-style: italic; font-size: 0.9rem;">${duelData.surnoms_Central || 'Rien de particulier'}</p>
+                            </div>
+                            
+                            <div class="stagger-item" style="border-left: 4px solid #9d4edd; background: rgba(157,78,221,0.04); padding: 12px; border-radius: 0 12px 12px 0;">
+                                <h4 style="color: #9d4edd; margin-bottom: 5px; font-size: 0.95rem;">Chez ${pretenderB} :</h4>
+                                <p style="color: #eee; font-style: italic; font-size: 0.9rem;">${duelData.surnoms_B || 'Rien de particulier'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Slide 5: Le Jugement de Cupidon / La Sentence de l'Enfer (Verdict final avec correction de chevauchement)
+            let winnerBadgeHTML = "";
+            if (isRoast) {
+                winnerBadgeHTML = `<div class="winner-badge pulse-animation" style="position: relative !important; top: auto !important; right: auto !important; margin: 0 auto 20px auto !important; display: inline-flex !important; background: linear-gradient(45deg, #ff3333, #ff0000); color: #fff; padding: 10px 25px; border-radius: 50px; font-weight: 900; border: 2px solid #fff; font-size: 1.2rem; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 0 25px rgba(255,0,0,0.6);">👑 LE PLUS GROS CONNARD : ${winnerName} 👿</div>`;
+            } else {
+                winnerBadgeHTML = isMatchNul
+                    ? `<div class="winner-badge" style="position: relative !important; top: auto !important; right: auto !important; margin: 0 auto 20px auto !important; display: inline-flex !important; background: rgba(255,255,255,0.1); color: #fff; padding: 10px 25px; border-radius: 50px; font-weight: bold; border: 2px solid rgba(255,255,255,0.3); font-size: 1.2rem; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 0 20px rgba(255,255,255,0.1);">💀 ${winnerName}</div>`
+                    : `<div class="winner-badge pulse-animation" style="position: relative !important; top: auto !important; right: auto !important; margin: 0 auto 20px auto !important; display: inline-flex !important; background: linear-gradient(45deg, #ffd166, #ffca3a); color: #000; padding: 10px 25px; border-radius: 50px; font-weight: 900; border: 2px solid #fff; font-size: 1.3rem; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 0 25px rgba(255,202,58,0.5);">🏆 LE CHOIX DE CUPIDON : ${winnerName} 👑</div>`;
+            }
+
+            const slide5HTML = `
+                <div class="result-slide duel-slide" id="duel-slide-verdict">
+                    <div style="width: 100%; max-width: 650px; margin: auto auto !important; background: rgba(0,0,0,0.35); padding: 30px 25px; border-radius: 24px; border: 1px solid rgba(255,208,102,0.3); text-align: center; max-height: calc(100dvh - 120px); overflow-y: auto;">
+                        <h3 style="color: #ffd166; margin-bottom: 25px; font-size: 1.6rem; text-shadow: 0 0 10px rgba(255,208,102,0.3);">${isRoast ? '👿 La Sentence de l\'Enfer' : '⚖️ Le Jugement Dernier de Cupidon'}</h3>
+                        
+                        <div class="stagger-item" style="margin-bottom: 20px;">
+                            ${winnerBadgeHTML}
+                        </div>
+
+                        <div class="stagger-item" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 20px; text-align: left; margin-bottom: 20px;">
+                            <h4 style="color: #ffd166; margin-bottom: 10px; font-size: 1.1rem; border-bottom: 1px dashed rgba(255,255,255,0.15); padding-bottom: 8px;">Analyse Suprême :</h4>
+                            <p style="color: #ccc; line-height: 1.5; font-size: 0.9rem; margin-bottom: 15px; font-style: italic;">${duelData.analyse_duel}</p>
+                            
+                            <h4 style="color: #ffd166; margin-bottom: 10px; font-size: 1.1rem; border-bottom: 1px dashed rgba(255,255,255,0.15); padding-bottom: 8px;">${isRoast ? 'Pourquoi remporte-t-il la palme ?' : 'Pourquoi c\'est le meilleur choix ?'}</h4>
+                            <p style="color: #fff; line-height: 1.6; font-size: 0.95rem; font-weight: 500;">${duelData.verdict_detail}</p>
+                        </div>
+
+                        <div class="stagger-item">
+                            <button id="shareDuelBtn" style="background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); color: white; width: auto; padding: 12px 30px; border-radius: 50px; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2);" onclick="shareDuelStory()" onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1)';">
+                                📸 Sauvegarder mon Duel pour ma Story
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = slide1HTML + slide2HTML + slide3HTML + slide4HTML + slide5HTML;
+
+            applyDuelTheme(duelData.score_compat_A, duelData.score_compat_B, winnerName, window.globalGoal);
+        }
+
+        function applyDuelTheme(scoreA, scoreB, winnerName, goal) {
+            const root = document.documentElement;
+            const cupidAnim = document.getElementById('cupid-animation');
+            const cursorArrow = document.getElementById('cursor-arrow');
+
+            let themeColors = {};
+            let emojis = ['⚔️', '⚖️', '🏆', '💘', '🔥'];
+
+            if (goal === 'Roast') {
+                themeColors = { primary: '#ff3333', secondary: '#9d4edd', bg1: '#1a000d', bg2: '#3a0024' };
+                emojis = ['💀', '😈', '⚔️', '🔥', '🧨'];
+            } else {
+                themeColors = { primary: '#ffd166', secondary: '#ff477e', bg1: '#0e0618', bg2: '#280c38' };
+            }
+
+            root.style.setProperty('--primary', themeColors.primary);
+            root.style.setProperty('--secondary', themeColors.secondary);
+            root.style.setProperty('--bg1', themeColors.bg1);
+            root.style.setProperty('--bg2', themeColors.bg2);
+
+            if (cursorArrow) cursorArrow.textContent = '⚔️';
+            if (cupidAnim) cupidAnim.textContent = '👼';
+            window.currentTrailEmojis = emojis;
+
+            if (typeof updateWebGLEmojis === 'function') {
+                updateWebGLEmojis(emojis);
+            }
+        }
+
+        function initPresentationDuelNavigation() {
+            const slides = Array.from(document.querySelectorAll('.duel-slide')).filter(slide => {
+                return window.getComputedStyle(slide).display !== 'none';
+            });
+
+            const navContainer = document.getElementById('results-nav-dots');
+            if (!navContainer) return;
+            navContainer.innerHTML = '';
+
+            slides.forEach((slide, idx) => {
+                const dot = document.createElement('div');
+                dot.className = 'nav-dot';
+                if (idx === 0) dot.classList.add('active');
+                
+                const title = slide.querySelector('h3')?.innerText || `Diapo ${idx + 1}`;
+                dot.title = title;
+
+                dot.onclick = () => {
+                    slide.scrollIntoView({ behavior: 'smooth' });
+                };
+                navContainer.appendChild(dot);
+            });
+
+            if (window.presentationDuelObserver) {
+                window.presentationDuelObserver.disconnect();
+            }
+
+            const observerOptions = {
+                root: document.getElementById('results-duel'),
+                rootMargin: '0px',
+                threshold: 0.5
+            };
+
+            window.presentationDuelObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const activeSlide = entry.target;
+
+                        slides.forEach(s => s.classList.remove('active-slide'));
+                        activeSlide.classList.add('active-slide');
+
+                        const activeIndex = slides.indexOf(activeSlide);
+                        const dots = navContainer.querySelectorAll('.nav-dot');
+                        dots.forEach((dot, dotIdx) => {
+                            if (dotIdx === activeIndex) {
+                                dot.classList.add('active');
+                            } else {
+                                dot.classList.remove('active');
+                            }
+                        });
+
+                        const staggerItems = activeSlide.querySelectorAll('.stagger-item');
+                        staggerItems.forEach((item, itemIdx) => {
+                            item.style.transitionDelay = `${itemIdx * 120}ms`;
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            slides.forEach(slide => {
+                window.presentationDuelObserver.observe(slide);
+            });
+
+            if (slides.length > 0) {
+                slides[0].scrollIntoView({ behavior: 'auto' });
+                slides[0].classList.add('active-slide');
+                const staggerItems = slides[0].querySelectorAll('.stagger-item');
+                staggerItems.forEach((item, itemIdx) => {
+                    item.style.transitionDelay = `${itemIdx * 120}ms`;
+                });
+            }
+        }
+
+        async function shareDuelStory() {
+            SoundEngine.playClick();
+            const shareBtn = document.getElementById('shareDuelBtn');
+            const originalText = shareBtn.innerHTML;
+            shareBtn.innerHTML = "⏳ Génération en cours...";
+            shareBtn.disabled = true;
+
+            try {
+                const rootFormat = getComputedStyle(document.documentElement);
+                const bg1 = rootFormat.getPropertyValue('--bg1').trim() || '#0e0618';
+                const bg2 = rootFormat.getPropertyValue('--bg2').trim() || '#280c38';
+                const primary = rootFormat.getPropertyValue('--primary').trim() || '#ffd166';
+
+                const resultsEl = document.getElementById('results-duel');
+                const clone = resultsEl.cloneNode(true);
+                clone.id = 'cloned-results-duel';
+                clone.style.display = 'block';
+                clone.style.animation = 'none';
+
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.left = '-9999px';
+                wrapper.style.top = '0';
+                wrapper.style.width = '600px';
+                wrapper.style.padding = '40px';
+                wrapper.style.background = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`;
+                wrapper.style.color = '#ffffff';
+                wrapper.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                wrapper.style.borderRadius = '20px';
+
+                const header = document.createElement('h1');
+                header.innerHTML = '⚔️ Cupidon IA - Love Duel';
+                header.style.textAlign = 'center';
+                header.style.marginBottom = '30px';
+                header.style.fontSize = '2.5rem';
+                header.style.color = primary;
+                header.style.filter = `drop-shadow(0 0 10px ${primary})`;
+                wrapper.appendChild(header);
+
+                wrapper.appendChild(clone);
+
+                const footer = document.createElement('div');
+                footer.innerHTML = 'Fais le crash-test de ta relation sur <b>temp-faw.github.io/Cupidon-IA/</b> ✨';
+                footer.style.textAlign = 'center';
+                footer.style.marginTop = '30px';
+                footer.style.fontSize = '1.1rem';
+                footer.style.color = 'rgba(255, 255, 255, 0.7)';
+                wrapper.appendChild(footer);
+
+                document.body.appendChild(wrapper);
+
+                const clonedSlides = wrapper.querySelectorAll('.duel-slide');
+                clonedSlides.forEach((slide, idx) => {
+                    slide.style.setProperty('opacity', '1', 'important');
+                    slide.style.setProperty('transform', 'none', 'important');
+                    slide.style.setProperty('min-height', 'auto', 'important');
+                    slide.style.setProperty('height', 'auto', 'important');
+                    slide.style.setProperty('width', '100%', 'important');
+                    slide.style.setProperty('padding', '15px 0', 'important');
+                    slide.style.setProperty('scroll-snap-align', 'none', 'important');
+                    slide.style.setProperty('display', 'block', 'important');
+                });
+
+                const clonedStaggers = wrapper.querySelectorAll('.stagger-item');
+                clonedStaggers.forEach(item => {
+                    item.style.setProperty('opacity', '1', 'important');
+                    item.style.setProperty('transform', 'none', 'important');
+                    item.style.setProperty('transition', 'none', 'important');
+                    item.style.setProperty('transition-delay', '0s', 'important');
+                });
+
+                wrapper.querySelectorAll('.duel-slide > div').forEach(card => {
+                    card.style.setProperty('background', 'rgba(0, 0, 0, 0.4)', 'important');
+                    card.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.15)', 'important');
+                    card.style.setProperty('border-radius', '20px', 'important');
+                    card.style.setProperty('padding', '25px', 'important');
+                    card.style.setProperty('margin', '15px auto', 'important');
+                    card.style.setProperty('max-width', '100%', 'important');
+                    card.style.setProperty('backdrop-filter', 'none', 'important');
+                    card.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                    card.style.setProperty('box-shadow', '0 10px 25px rgba(0, 0, 0, 0.3)', 'important');
+                });
+
+                const clonedBtn = clone.querySelector('#shareDuelBtn');
+                if (clonedBtn) clonedBtn.remove();
+
+                wrapper.querySelectorAll('*').forEach(el => {
+                    el.style.setProperty('backdrop-filter', 'none', 'important');
+                    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                });
+
+                const canvas = await html2canvas(wrapper, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#000000'
+                });
+
+                document.body.removeChild(wrapper);
+
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                if (navigator.share && navigator.canShare) {
+                    try {
+                        const blob = await (await fetch(dataUrl)).blob();
+                        const file = new File([blob], 'cupidon-duel.png', { type: 'image/png' });
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: 'Mon verdict Love Duel Cupidon IA ⚔️',
+                                text: 'Regarde le verdict de Cupidon IA sur mon duel amoureux ! ⚔️ Teste ta relation ici : https://temp-faw.github.io/Cupidon-IA/'
+                            });
+                            shareBtn.innerHTML = "✅ Partagé !";
+                            setTimeout(() => { shareBtn.innerHTML = originalText; shareBtn.disabled = false; }, 3000);
+                            return;
+                        }
+                    } catch (err) {
+                        console.log("Erreur de partage natif:", err);
+                    }
+                }
+
+                const link = document.createElement('a');
+                link.download = 'cupidon-duel.png';
+                link.href = dataUrl;
+                link.click();
+                
+                shareBtn.innerHTML = "✅ Image téléchargée !";
+                setTimeout(() => { shareBtn.innerHTML = originalText; shareBtn.disabled = false; }, 3000);
+            } catch(e) {
+                console.error(e);
+                alert("Erreur lors de la capture de l'image.");
+                shareBtn.innerHTML = originalText;
+                shareBtn.disabled = false;
+            }
+        }
+
+        function saveDuelToHistory(duelData, result1, result2, goal) {
+            try {
+                const history = JSON.parse(localStorage.getItem('cupidon_history') || '[]');
+                
+                const historyItem = {
+                    id: 'duel_' + Date.now(),
+                    date: new Date().toLocaleString('fr-FR'),
+                    personA: result1.personA,
+                    personB: `${result1.personB} vs ${result2.personB}`,
+                    goal: goal,
+                    compatibilite: Math.max(duelData.score_compat_A, duelData.score_compat_B),
+                    isDuel: true,
+                    duelData: duelData,
+                    result1: {
+                        personA: result1.personA,
+                        personB: result1.personB,
+                        stats: result1.stats,
+                        recentContext: result1.recentContext,
+                        recentMessages: result1.recentMessages,
+                        combinedChatText: result1.combinedChatText
+                    },
+                    result2: {
+                        personA: result2.personA,
+                        personB: result2.personB,
+                        stats: result2.stats,
+                        recentContext: result2.recentContext,
+                        recentMessages: result2.recentMessages,
+                        combinedChatText: result2.combinedChatText
+                    },
+                    model: document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : 'gemini-3.5-flash'
+                };
+
+                let success = false;
+                let attempts = 0;
+                
+                while (!success && attempts < 3) {
+                    try {
+                        const filteredHistory = history.filter(item => 
+                            !(item.personA === historyItem.personA && item.personB === historyItem.personB && item.goal === historyItem.goal)
+                        );
+                        
+                        const updatedHistory = [historyItem, ...filteredHistory];
+                        if (updatedHistory.length > 10) updatedHistory.pop();
+                        
+                        localStorage.setItem('cupidon_history', JSON.stringify(updatedHistory));
+                        success = true;
+                    } catch (quotaError) {
+                        attempts++;
+                        if (attempts === 1) {
+                            if (historyItem.result1.combinedChatText.length > 50000) {
+                                historyItem.result1.combinedChatText = historyItem.result1.combinedChatText.substring(0, 50000) + "\n[Tronqué]";
+                            }
+                            if (historyItem.result2.combinedChatText.length > 50000) {
+                                historyItem.result2.combinedChatText = historyItem.result2.combinedChatText.substring(0, 50000) + "\n[Tronqué]";
+                            }
+                        } else if (attempts === 2) {
+                            historyItem.result1.combinedChatText = historyItem.result1.recentContext;
+                            historyItem.result2.combinedChatText = historyItem.result2.recentContext;
+                        } else {
+                            throw quotaError;
+                        }
+                    }
+                }
+                renderHistoryList();
+            } catch (e) {
+                console.error("Erreur de sauvegarde de l'historique du duel :", e);
             }
         }
 
@@ -914,7 +1838,7 @@ ${chatData.text}`;
                 }
 
                 if (data.idees_messages_relance && data.idees_messages_relance.length > 0) {
-                    messagesContainer.parentElement.style.display = 'block';
+                    document.getElementById('messages-box').style.display = 'flex';
                     document.getElementById('messages-title').innerText = (chatData.goal === 'Roast') ? "Piques à envoyer (Mode Roast) 😈" : "Idées de messages de relance 💬";
                     data.idees_messages_relance.forEach(msg => {
                         messagesContainer.innerHTML += `<li class="stagger-item" style="margin-bottom: 8px;">"${msg}"</li>`;
@@ -936,7 +1860,7 @@ ${chatData.text}`;
                         }
                     });
                 } else {
-                    messagesContainer.parentElement.style.display = 'none';
+                    document.getElementById('messages-box').style.display = 'none';
                     if (suggestionsContainer) suggestionsContainer.style.display = 'none';
                 }
             }
@@ -950,7 +1874,7 @@ ${chatData.text}`;
                         badgesContainer.innerHTML += `
                             <div class="badge-card stagger-item" onclick="showBadgeModal(this)">
                                 <div class="badge-emoji">${badge.emoji}</div>
-                                <div class="badge-title">${badge.titre}</div>
+                                <div class="badge-title">${badge.titre || badge.title || "Titre"}</div>
                                 <div class="badge-desc">${badge.description}</div>
                             </div>
                         `;
@@ -964,7 +1888,7 @@ ${chatData.text}`;
             if (topicsContainer && topicsBox) {
                 topicsContainer.innerHTML = '';
                 if (data.sujets_conversation && data.sujets_conversation.length > 0) {
-                    topicsBox.style.display = 'block';
+                    topicsBox.style.display = 'flex';
                     data.sujets_conversation.forEach(topic => {
                         topicsContainer.innerHTML += `<div class="topic-badge stagger-item">${topic}</div>`;
                     });
@@ -979,11 +1903,11 @@ ${chatData.text}`;
             if (redflagsContainer && redflagsBox) {
                 redflagsContainer.innerHTML = '';
                 if (data.red_flags && data.red_flags.length > 0) {
-                    redflagsBox.style.display = 'block';
+                    redflagsBox.style.display = 'flex';
                     data.red_flags.forEach(rf => {
                         redflagsContainer.innerHTML += `
                             <div class="highlight-item stagger-item" style="border-left-color: #ff3333; background: rgba(255,51,51,0.1);">
-                                <div class="highlight-title" style="color:#ff3333;">${rf.titre}</div>
+                                <div class="highlight-title" style="color:#ff3333;">${rf.titre || rf.title || "Drapeau Rouge"}</div>
                                 <div class="highlight-desc">${rf.description}</div>
                             </div>
                         `;
@@ -999,11 +1923,11 @@ ${chatData.text}`;
             if (highlightsContainer && highlightsBox) {
                 highlightsContainer.innerHTML = '';
                 if (data.moments_forts && data.moments_forts.length > 0) {
-                    highlightsBox.style.display = 'block';
+                    highlightsBox.style.display = 'flex';
                     data.moments_forts.forEach(hl => {
                         highlightsContainer.innerHTML += `
                             <div class="highlight-item stagger-item">
-                                <div class="highlight-title">${hl.titre}</div>
+                                <div class="highlight-title">${hl.titre || hl.title || "Moment Fort"}</div>
                                 <div class="highlight-desc">${hl.description}</div>
                             </div>
                         `;
@@ -1200,7 +2124,7 @@ ${chatData.text}`;
                 }
             }
             
-            window.simulatedHistory.forEach(item => {
+            window.simulatedHistory.forEach((item, idx) => {
                const splitIdx = item.indexOf(':');
                const author = item.substring(0, splitIdx).trim();
                const text = item.substring(splitIdx + 1).trim();
@@ -1210,9 +2134,11 @@ ${chatData.text}`;
                const align = isMe ? 'align-self: flex-end;' : 'align-self: flex-start;';
                const radius = isMe ? '18px 18px 0 18px' : '18px 18px 18px 0';
                const label = isMe ? `${author} (Vous)` : `${author} (IA)`;
+               const isLast = (idx === window.simulatedHistory.length - 1);
+               const animClass = isLast ? 'chat-bubble-new' : '';
                
                chatEl.innerHTML += `
-                   <div style="${align} background: ${color}33; border: 1px solid ${color}66; padding: 12px 18px; border-radius: ${radius}; max-width: 85%;">
+                   <div class="${animClass}" style="${align} background: ${color}33; border: 1px solid ${color}66; padding: 12px 18px; border-radius: ${radius}; max-width: 85%; box-sizing: border-box;">
                        <div style="font-size: 0.75rem; color: ${color}; margin-bottom: 5px; font-weight: bold;">${label}</div>
                        <div style="line-height: 1.4; color: white;">${text}</div>
                    </div>
@@ -1227,11 +2153,19 @@ ${chatData.text}`;
             renderWhatIfHistory();
         }
 
-        async function simulateWhatIf() {
+        window.retryWhatIf = async function(elementId, msgText) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.remove();
+            }
+            await simulateWhatIf(msgText);
+        };
+
+        async function simulateWhatIf(retryMsgText = null) {
             const inputEl = document.getElementById('whatif-input');
             const chatEl = document.getElementById('whatif-chat');
             const btnEl = document.getElementById('whatif-btn');
-            const msgText = inputEl.value.trim();
+            const msgText = retryMsgText !== null ? retryMsgText : inputEl.value.trim();
             
             if (!msgText || !window.globalRecentContext) return;
             
@@ -1242,8 +2176,10 @@ ${chatData.text}`;
             const sendColor = senderRole === 'A' ? '#ff477e' : '#9d4edd';
             const receiveColor = senderRole === 'A' ? '#9d4edd' : '#ff477e';
 
-            window.simulatedHistory.push(`${senderName}: ${msgText}`);
-            inputEl.value = "";
+            if (retryMsgText === null) {
+                window.simulatedHistory.push(`${senderName}: ${msgText}`);
+                inputEl.value = "";
+            }
             btnEl.disabled = true;
             btnEl.innerText = "🔮...";
 
@@ -1341,8 +2277,17 @@ Renvoie UNIQUEMENT un objet JSON valide avec cette structure stricte :
             } catch(e) {
                 const typingEl = document.getElementById(typingId);
                 if (typingEl) {
-                    typingEl.innerText = "❌ Bug de transmission.";
-                    typingEl.style.color = "red";
+                    typingEl.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
+                            <span style="color: #ff4d4d; font-weight: bold;">❌ Bug de transmission.</span>
+                            <button onclick="retryWhatIf('${typingId}', ${JSON.stringify(msgText).replace(/"/g, '&quot;')})" style="background: linear-gradient(45deg, #9d4edd, #c77dff); border: none; border-radius: 20px; padding: 5px 12px; color: white; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(157, 78, 221, 0.4); transition: all 0.2s;">
+                                Réessayer 🔄
+                            </button>
+                        </div>
+                    `;
+                    typingEl.style.fontStyle = "normal";
+                    typingEl.style.color = "unset";
+                    typingEl.style.width = "100%";
                 }
                 console.error(e);
             } finally {
@@ -1366,7 +2311,7 @@ Renvoie UNIQUEMENT un objet JSON valide avec cette structure stricte :
                 return;
             }
             
-            window.qaHistory.forEach(item => {
+            window.qaHistory.forEach((item, idx) => {
                const splitIdx = item.indexOf(':');
                const author = item.substring(0, splitIdx).trim();
                const text = item.substring(splitIdx + 1).trim();
@@ -1376,9 +2321,11 @@ Renvoie UNIQUEMENT un objet JSON valide avec cette structure stricte :
                const align = isMe ? 'align-self: flex-end;' : 'align-self: flex-start;';
                const radius = isMe ? '18px 18px 0 18px' : '18px 18px 18px 0';
                const label = isMe ? `Vous` : `Cupidon`;
+               const isLast = (idx === window.qaHistory.length - 1);
+               const animClass = isLast ? 'chat-bubble-new' : '';
                
                chatEl.innerHTML += `
-                   <div style="${align} background: ${color}33; border: 1px solid ${color}66; padding: 12px 18px; border-radius: ${radius}; max-width: 85%;">
+                   <div class="${animClass}" style="${align} background: ${color}33; border: 1px solid ${color}66; padding: 12px 18px; border-radius: ${radius}; max-width: 85%; box-sizing: border-box;">
                        <div style="font-size: 0.75rem; color: ${color}; margin-bottom: 5px; font-weight: bold;">${label}</div>
                        <div style="line-height: 1.4; color: white;">${text}</div>
                    </div>
@@ -1386,17 +2333,26 @@ Renvoie UNIQUEMENT un objet JSON valide avec cette structure stricte :
             });
             chatEl.scrollTop = chatEl.scrollHeight;
         }
+        window.retryQACupid = async function(elementId, questionText) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.remove();
+            }
+            await askCupid(questionText);
+        };
 
-        async function askCupid() {
+        async function askCupid(retryQuestion = null) {
             const inputEl = document.getElementById('qa-input');
             const chatEl = document.getElementById('qa-chat');
             const btnEl = document.getElementById('qa-btn');
-            const questionText = inputEl.value.trim();
+            const questionText = retryQuestion !== null ? retryQuestion : inputEl.value.trim();
             
             if (!questionText || !window.globalCombinedChatText) return;
 
-            window.qaHistory.push(`Vous: ${questionText}`);
-            inputEl.value = "";
+            if (retryQuestion === null) {
+                window.qaHistory.push(`Vous: ${questionText}`);
+                inputEl.value = "";
+            }
             btnEl.disabled = true;
             btnEl.innerText = "🤔...";
 
@@ -1473,8 +2429,17 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             } catch(e) {
                 const typingEl = document.getElementById(typingId);
                 if (typingEl) {
-                    typingEl.innerText = "❌ Bug de transmission.";
-                    typingEl.style.color = "red";
+                    typingEl.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
+                            <span style="color: #ff4d4d; font-weight: bold;">❌ Bug de transmission.</span>
+                            <button onclick="retryQACupid('${typingId}', ${JSON.stringify(questionText).replace(/"/g, '&quot;')})" style="background: linear-gradient(45deg, #00b4d8, #00f5d4); border: none; border-radius: 20px; padding: 5px 12px; color: black; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0, 245, 212, 0.4); transition: all 0.2s;">
+                                Réessayer 🔄
+                            </button>
+                        </div>
+                    `;
+                    typingEl.style.fontStyle = "normal";
+                    typingEl.style.color = "unset";
+                    typingEl.style.width = "100%";
                 }
                 console.error(e);
             } finally {
@@ -1568,7 +2533,7 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
         // --- Logique du Mode Présentation (Spotify Wrapped) ---
         function initPresentationNavigation() {
             // Identifier les slides réellement visibles (ignore ceux en display: none)
-            const slides = Array.from(document.querySelectorAll('.result-slide')).filter(slide => {
+            const slides = Array.from(document.querySelectorAll('#results > .result-slide')).filter(slide => {
                 return window.getComputedStyle(slide).display !== 'none';
             });
 
@@ -1657,13 +2622,17 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 window.presentationObserver.disconnect();
                 window.presentationObserver = null;
             }
+            if (window.presentationDuelObserver) {
+                window.presentationDuelObserver.disconnect();
+                window.presentationDuelObserver = null;
+            }
 
-            // Réinitialiser les états et classes de présentation
-            document.body.classList.remove('results-active');
+            document.body.classList.remove('results-active', 'results-duel-active');
             document.getElementById('results').style.display = 'none';
+            document.getElementById('results-duel').style.display = 'none';
             document.getElementById('raw-stats').style.display = 'none';
 
-            const slides = document.querySelectorAll('.result-slide');
+            const slides = document.querySelectorAll('.result-slide, .duel-slide');
             slides.forEach(s => {
                 s.classList.remove('active-slide');
                 s.querySelectorAll('.stagger-item').forEach(item => {
@@ -1671,10 +2640,8 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 });
             });
 
-            // Afficher à nouveau le formulaire
             document.getElementById('form-container').style.display = 'block';
 
-            // Scroller le document global vers le haut
             window.scrollTo({ top: 0, behavior: 'instant' });
         }
 
@@ -1799,21 +2766,24 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 if (item.goal === 'Amitié') goalEmoji = '🤝';
                 if (item.goal === 'Roast') goalEmoji = '😈';
 
+                const badgeClass = item.isDuel ? 'history-score-badge duel-badge' : 'history-score-badge';
+                const heartOrVs = item.isDuel ? '⚔️' : (item.goal === 'Roast' ? '🔥' : '💘');
+
                 container.innerHTML += `
-                    <div class="history-item">
+                    <div class="history-item" style="${item.isDuel ? 'border: 1px solid rgba(157, 78, 221, 0.3); background: rgba(157, 78, 221, 0.02);' : ''}">
                         <div class="history-info">
                             <div class="history-names">
-                                ${item.personA} <span>${item.goal === 'Roast' ? '🔥' : '💘'}</span> ${item.personB}
+                                ${item.personA} <span>${heartOrVs}</span> ${item.personB}
                             </div>
                             <div class="history-meta">
-                                Objectif : ${item.goal} ${goalEmoji}<br>
+                                ${item.isDuel ? '🔥 MODE DUEL COMPARATIF ⚔️' : `Objectif : ${item.goal} ${goalEmoji}`}<br>
                                 Analyse du ${item.date} (${item.model || 'Flash'})
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="history-score-badge">${item.compatibilite}%</div>
+                            <div class="${badgeClass}" style="${item.isDuel ? 'background: rgba(157, 78, 221, 0.2); border-color: rgba(157, 78, 221, 0.4); color: #c77dff;' : ''}">${item.compatibilite}%</div>
                             <div class="history-actions">
-                                <button class="btn-restore-history" onclick="restoreAnalysis('${item.id}')">🪄</button>
+                                <button class="btn-restore-history" style="${item.isDuel ? 'background: linear-gradient(45deg, #9d4edd, #c77dff);' : ''}" onclick="restoreAnalysis('${item.id}')">🪄</button>
                                 <button class="btn-delete-history" onclick="deleteHistoryItem('${item.id}')">🗑️</button>
                             </div>
                         </div>
@@ -1828,7 +2798,29 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             const item = history.find(i => i.id === id);
             if (!item) return;
 
-            // Restaurer les variables de contexte
+            if (item.isDuel) {
+                window.analysisMode = 'duel';
+                window.duelResult1 = item.result1;
+                window.duelResult2 = item.result2;
+                window.globalGoal = item.goal;
+
+                displayDuelResults(item.duelData, item.result1, item.result2);
+                closeHistoryModal();
+
+                document.getElementById('form-container').style.display = 'none';
+                document.getElementById('results-duel').style.display = 'block';
+                document.body.classList.add('results-duel-active');
+
+                initPresentationDuelNavigation();
+                
+                try {
+                    SoundEngine.playSuccess();
+                    playCupidAnimation();
+                } catch(e) {}
+                return;
+            }
+
+            window.analysisMode = 'standard';
             window.globalRecentContext = item.recentContext;
             window.globalRecentMessages = item.recentMessages || [];
             window.globalPersonA = item.personA;
@@ -1866,7 +2858,7 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             document.getElementById('stat-pct-b').innerText = Math.round((item.stats.countB / item.stats.total) * 100) + "%";
             document.getElementById('stat-emojis-a').innerText = item.stats.emojisA;
             document.getElementById('stat-emojis-b').innerText = item.stats.emojisB;
-            document.getElementById('raw-stats').style.display = 'block';
+            document.getElementById('raw-stats').style.display = 'flex';
 
             // Afficher les résultats re-générés
             displayResults(item.aiResult, chatData);
@@ -1904,3 +2896,107 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 renderHistoryList();
             }
         }
+
+        // --- Premium 3D Card Tilt & Gyroscope Parallax Effect ---
+        let activeTiltedCard = null;
+
+        document.addEventListener('mousemove', (e) => {
+            const card = e.target.closest('.result-slide > div, .result-slide > .improvement-box, .result-slide > .analysis-box, .versus-container, .verdict-box, .duel-slide > div');
+            
+            if (activeTiltedCard && activeTiltedCard !== card) {
+                // Reset previously tilted card
+                activeTiltedCard.style.transition = "transform 0.5s ease, box-shadow 0.5s ease";
+                activeTiltedCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+                activeTiltedCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
+                activeTiltedCard = null;
+            }
+
+            if (card) {
+                activeTiltedCard = card;
+                
+                // Configure card for 3D
+                if (card.style.transformStyle !== "preserve-3d") {
+                    card.style.transformStyle = "preserve-3d";
+                }
+                
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                // Max tilt angle (degrees)
+                const maxTilt = 8;
+                const tiltX = ((centerY - y) / centerY) * maxTilt;
+                const tiltY = ((x - centerX) / centerX) * maxTilt;
+                
+                card.style.transition = "transform 0.1s ease, box-shadow 0.1s ease";
+                card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
+                card.style.boxShadow = `${-tiltY * 3}px ${tiltX * 3}px 30px rgba(0,0,0,0.6), 0 20px 40px rgba(0,0,0,0.4)`;
+            }
+        });
+
+        document.addEventListener('mouseleave', () => {
+            if (activeTiltedCard) {
+                activeTiltedCard.style.transition = "transform 0.5s ease, box-shadow 0.5s ease";
+                activeTiltedCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+                activeTiltedCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
+                activeTiltedCard = null;
+            }
+        });
+
+        // Handle Device Orientation (Gyroscope) on Mobile
+        function handleOrientation(e) {
+            const beta = e.beta; // rotation around X axis [-180, 180] (tilt front/back)
+            const gamma = e.gamma; // rotation around Y axis [-90, 90] (tilt left/right)
+            
+            if (beta === null || gamma === null) return;
+            
+            // Comfort holding angle assumes beta is ~45 degrees, gamma is ~0 degrees.
+            let deltaBeta = beta - 45;
+            let deltaGamma = gamma;
+            
+            // Limit angles to max 15 degrees of delta
+            deltaBeta = Math.max(-15, Math.min(15, deltaBeta));
+            deltaGamma = Math.max(-15, Math.min(15, deltaGamma));
+            
+            // Convert to tilt rotation (max ~6 degrees)
+            const maxGyroTilt = 6;
+            const tiltX = - (deltaBeta / 15) * maxGyroTilt;
+            const tiltY = (deltaGamma / 15) * maxGyroTilt;
+            
+            // Apply tilt only to card(s) in active slide
+            const activeSlide = document.querySelector('.result-slide.active, .duel-slide.active');
+            if (activeSlide) {
+                const activeCards = activeSlide.querySelectorAll('div, .improvement-box, .analysis-box, .versus-container, .verdict-box');
+                activeCards.forEach(card => {
+                    // Check if card is actually visible / matching our premium selectors
+                    if (card.matches('.result-slide > div, .result-slide > .improvement-box, .result-slide > .analysis-box, .versus-container, .verdict-box, .duel-slide > div')) {
+                        if (card.style.transformStyle !== "preserve-3d") {
+                            card.style.transformStyle = "preserve-3d";
+                        }
+                        card.style.transition = "transform 0.2s ease-out";
+                        card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+                    }
+                });
+            }
+        }
+
+        // Request permission on any click interaction for iOS Safari compatibility
+        window.addEventListener('click', function requestGyroPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation);
+            }
+            // Remove listener so it only triggers once
+            window.removeEventListener('click', requestGyroPermission);
+        });
+

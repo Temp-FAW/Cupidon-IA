@@ -43,11 +43,27 @@
         body {
             background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
             color: var(--text);
-            min-height: 100vh;
+            min-height: 100dvh;
             padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
+        }
+
+        .landing-wrapper {
+            width: 100%;
+            max-width: 800px;
+            margin: auto auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        body.results-active .landing-wrapper,
+        body.results-duel-active .landing-wrapper {
+            display: none !important;
         }
 
         h1 {
@@ -750,18 +766,26 @@
         }
 
         /* --- Fullscreen Presentation & Scroll Snapping Styles --- */
-        body.results-active {
+        body.results-active, body.results-duel-active {
             overflow: hidden !important;
             padding: 0 !important;
         }
 
-        body.results-active h1,
-        body.results-active > p,
-        body.results-active footer {
+        body.results-duel-active .landing-wrapper {
             display: none !important;
         }
 
-        body.results-active #results {
+        body.results-active h1,
+        body.results-active > p,
+        body.results-active footer,
+        body.results-duel-active h1,
+        body.results-duel-active > p,
+        body.results-duel-active footer {
+            display: none !important;
+        }
+
+        body.results-active #results,
+        body.results-duel-active #results-duel {
             display: block !important;
             position: fixed !important;
             top: 0 !important;
@@ -784,7 +808,7 @@
             scroll-snap-stop: always;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             padding: 60px 20px;
             position: relative;
@@ -808,7 +832,7 @@
         .result-slide > .analysis-box {
             width: 100%;
             max-width: 680px;
-            margin: 0 auto;
+            margin: auto auto !important;
             background: rgba(255, 255, 255, 0.03) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
@@ -822,7 +846,6 @@
 
         .result-slide .improvement-box {
             border-left: 5px solid var(--primary) !important;
-            margin-top: 0 !important;
         }
 
         .result-slide .scores-grid {
@@ -874,7 +897,8 @@
             transform: translateX(-20px);
         }
 
-        body.results-active .floating-back-btn {
+        body.results-active .floating-back-btn,
+        body.results-duel-active .floating-back-btn {
             display: block;
             opacity: 1;
             visibility: visible;
@@ -905,7 +929,8 @@
             transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s ease;
         }
 
-        body.results-active .nav-dots-container {
+        body.results-active .nav-dots-container,
+        body.results-duel-active .nav-dots-container {
             opacity: 1;
             visibility: visible;
             pointer-events: auto;
@@ -932,8 +957,286 @@
             box-shadow: 0 0 10px var(--primary);
         }
 
+        /* Immersive layout for Simulator & Q&A slides (dynamic vertical growth) */
+        #whatif-box, #qa-box {
+            padding: 40px 20px !important;
+        }
+
+        #whatif-box > .improvement-box, 
+        #qa-box > .improvement-box {
+            display: flex !important;
+            flex-direction: column !important;
+            width: 100% !important;
+            max-width: 900px !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: calc(100dvh - 120px) !important;
+            margin: auto auto !important;
+            box-sizing: border-box;
+            justify-content: flex-start !important;
+            transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+        }
+
+        #whatif-chat, #qa-chat {
+            flex: 0 1 auto !important;
+            max-height: none !important;
+            overflow-y: auto !important;
+        }
+
+        /* Smooth popup animation for newly added simulator/Q&A chat bubbles */
+        @keyframes popMessage {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+                max-height: 0;
+                padding-top: 0 !important;
+                padding-bottom: 0 !important;
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+                border-width: 0 !important;
+                overflow: hidden;
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                max-height: 5000px;
+            }
+        }
+
+        .chat-bubble-new {
+            animation: popMessage 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        }
+
+        /* Mode Switcher and Duel Arena styling */
+        .mode-selector {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 5px;
+            border-radius: 12px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .mode-tab.active {
+            background: rgba(255, 71, 126, 0.15) !important;
+            color: #ff477e !important;
+            box-shadow: 0 0 15px rgba(255, 71, 126, 0.2);
+        }
+
+        .duel-zones-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .duel-zones-container {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+        }
+
+        .drop-zone.duel-a {
+            border: 2px dashed rgba(255, 71, 126, 0.3) !important;
+            background: rgba(255, 71, 126, 0.01) !important;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.duel-a.dragover {
+            border-color: #ff477e !important;
+            box-shadow: 0 0 15px rgba(255, 71, 126, 0.3);
+            background: rgba(255, 71, 126, 0.05) !important;
+        }
+
+        .drop-zone.duel-b {
+            border: 2px dashed rgba(157, 78, 221, 0.3) !important;
+            background: rgba(157, 78, 221, 0.01) !important;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.duel-b.dragover {
+            border-color: #9d4edd !important;
+            box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
+            background: rgba(157, 78, 221, 0.05) !important;
+        }
+
+        /* Duel slide layout */
+        #results-duel .result-slide {
+            width: 100vw;
+            min-height: 100dvh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 60px 20px;
+            position: relative;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
+                        transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        #results-duel .result-slide.active-slide {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Versus layout cards */
+        .versus-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+            margin: auto auto !important;
+        }
+
+        @media (max-width: 768px) {
+            .versus-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+        }
+
+        .versus-card {
+            background: rgba(255, 255, 255, 0.03) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 24px !important;
+            padding: 25px !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .versus-card.duel-a-card {
+            border-left: 5px solid #ff477e !important;
+        }
+
+        .versus-card.duel-b-card {
+            border-left: 5px solid #9d4edd !important;
+        }
+
+        .winner-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(45deg, #ffd166, #ffb703);
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            box-shadow: 0 0 15px rgba(255, 209, 102, 0.6);
+            letter-spacing: 0.5px;
+            animation: pulseWinner 1.5s infinite alternate;
+        }
+
+        @keyframes pulseWinner {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 209, 102, 0.5); }
+            100% { transform: scale(1.1); box-shadow: 0 0 20px rgba(255, 209, 102, 0.8); }
+        }
+
+        .versus-header-block {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .versus-avatar {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            animation: bounceAvatar 3s infinite ease-in-out;
+        }
+
+        @keyframes bounceAvatar {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .versus-name {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .versus-stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .versus-stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .versus-stat-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+        }
+
+        .versus-stat-val {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* Large single card layout for final verdict */
+        .verdict-box {
+            width: 100%;
+            max-width: 800px;
+            margin: auto auto !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 24px !important;
+            padding: 35px !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+            box-sizing: border-box;
+            border-top: 3px solid #ffd166 !important;
+            border-bottom: 3px solid #ffd166 !important;
+        }
+
+        .verdict-title {
+            text-align: center;
+            color: #ffd166;
+            font-size: 1.8rem;
+            font-weight: 900;
+            margin-bottom: 25px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 15px rgba(255, 209, 102, 0.3);
+        }
+
         /* Mobile Adjustments */
         @media (max-width: 768px) {
+            body {
+                padding: 12px !important;
+            }
+
             /* 1. Main container and headings */
             .container {
                 padding: 20px 16px !important;
@@ -1071,9 +1374,23 @@
                 overflow: hidden;
             }
 
-            /* 8. Simulator ("What If...") & Q&A */
+            /* 8. Simulator ("What If...") & Q&A (Responsive Dynamic Full Screen) */
+            #whatif-box, #qa-box {
+                padding: 70px 12px 30px !important;
+            }
+
+            #whatif-box > .improvement-box, 
+            #qa-box > .improvement-box {
+                max-width: 100% !important;
+                height: auto !important;
+                min-height: auto !important;
+                max-height: calc(100dvh - 120px) !important;
+                padding: 20px 15px !important;
+                margin: auto auto !important;
+            }
+
             #whatif-chat, #qa-chat {
-                max-height: 110px !important;
+                max-height: none !important;
                 padding: 8px !important;
                 gap: 6px !important;
                 margin-bottom: 8px !important;
@@ -1395,5 +1712,93 @@
             .btn-restore-history, .btn-delete-history {
                 padding: 5px 8px !important;
                 font-size: 0.75rem !important;
+            }
+        }
+
+        /* --- Mode Duel & Arena Styles --- */
+        .duel-zones-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .duel-zones-container {
+                flex-direction: column;
+            }
+        }
+
+        .drop-zone.duel-a {
+            border-color: rgba(255, 71, 126, 0.4) !important;
+            background: rgba(255, 71, 126, 0.02) !important;
+        }
+
+        .drop-zone.duel-b {
+            border-color: rgba(157, 78, 221, 0.4) !important;
+            background: rgba(157, 78, 221, 0.02) !important;
+        }
+
+        .drop-zone.duel-a.dragover {
+            border-color: #ff477e !important;
+            background: rgba(255, 71, 126, 0.1) !important;
+            transform: scale(1.02);
+        }
+
+        .drop-zone.duel-b.dragover {
+            border-color: #9d4edd !important;
+            background: rgba(157, 78, 221, 0.1) !important;
+            transform: scale(1.02);
+        }
+
+        .duel-slide {
+            width: 100vw;
+            min-height: 100dvh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 60px 20px;
+            position: relative;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
+                        transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .duel-slide.active-slide {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .duel-slide > div {
+            width: 100%;
+            max-width: 680px;
+            margin: auto auto !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 24px !important;
+            padding: 35px !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
+            box-sizing: border-box;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .pulse-animation {
+            animation: goldPulse 2s infinite alternate;
+        }
+
+        @keyframes goldPulse {
+            0% {
+                box-shadow: 0 0 15px rgba(255, 202, 58, 0.3);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(255, 202, 58, 0.8), 0 0 10px rgba(255, 255, 255, 0.5);
+                transform: scale(1.05);
             }
         }
