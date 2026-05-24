@@ -1188,7 +1188,7 @@ const SoundEngine = {
         - ${pretenderB} (Prétendant B)
 
         Dans cette confrontation de pitié, tu dois désigner **LE PLUS GROS CONNARD** de l'histoire (le plus toxique, le plus égoïste, le pire protagoniste, ou celui qui se comporte le plus mal). 
-        ⚠️ IMPORTANT : Le plus gros connard peut être l'un des prétendants (${pretenderA} ou ${pretenderB}), mais cela peut aussi être l'utilisateur principal lui-même (${centralUser}) s'il se comporte comme une ordure avec eux !
+        ⚠️ DIRECTIVE CRITIQUE D'OBJECTIVITÉ (ANTI-BIAIS) : Ne cible PAS systématiquement l'utilisateur principal (${centralUser}) juste par provocation facile ou pour plaire au lecteur. Base-toi exclusivement sur la réalité des messages. Si l'un des prétendants (${pretenderA} ou ${pretenderB}) se montre froid, distant, manipulateur, toxique ou égoïste, désigne-le impitoyablement comme le vainqueur du titre. Si c'est réellement l'utilisateur principal (${centralUser}) qui est le pire protagoniste de l'histoire, alors seulement désigne-le. Sois d'une impartialité et d'une lucidité absolues.
         Sois impitoyable. Pour chaque slide ou aspect, tu dois donner une évaluation acide et drôle pour CHACUNE des 3 personnes.
         Utilise un langage familier, cru, et hyper acide (ex: serpillère, forceur, égo surdimensionné, toxique). Tourne en dérision les défauts et cite-les copieusement.`;
             }
@@ -3163,6 +3163,10 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             }
         });
 
+        // Baseline attributes for dynamic mobile gyroscope auto-calibration
+        let baselineBeta = null;
+        let baselineGamma = null;
+
         // Handle Device Orientation (Gyroscope) on Mobile
         function handleOrientation(e) {
             const beta = e.beta; // rotation around X axis [-180, 180] (tilt front/back)
@@ -3170,9 +3174,18 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             
             if (beta === null || gamma === null) return;
             
-            // Comfort holding angle assumes beta is ~45 degrees, gamma is ~0 degrees.
-            let deltaBeta = beta - 45;
-            let deltaGamma = gamma;
+            // Dynamic auto-calibration: initialize baseline or drift slowly
+            if (baselineBeta === null) {
+                baselineBeta = beta;
+                baselineGamma = gamma;
+            } else {
+                // Slowly adjust baseline towards current posture (0.8% drift per frame)
+                baselineBeta = baselineBeta * 0.992 + beta * 0.008;
+                baselineGamma = baselineGamma * 0.992 + gamma * 0.008;
+            }
+            
+            let deltaBeta = beta - baselineBeta;
+            let deltaGamma = gamma - baselineGamma;
             
             // Limit angles to max 15 degrees of delta
             deltaBeta = Math.max(-15, Math.min(15, deltaBeta));
@@ -3193,7 +3206,7 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                         if (card.style.transformStyle !== "preserve-3d") {
                             card.style.transformStyle = "preserve-3d";
                         }
-                        card.style.transition = "transform 0.25s ease-out";
+                        card.style.transition = "transform 0.15s ease-out";
                         card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
                     }
                 });

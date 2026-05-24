@@ -108,24 +108,35 @@ function animateParticles(event) {
     mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
 }
 
+let gyroBaselineX = null;
+let gyroBaselineY = null;
+
 function handleOrientation(event) {
     if (event.gamma === null || event.beta === null) return;
     
     let x = event.gamma; // Inclinaison gauche/droite [-90, 90]
     let y = event.beta;  // Inclinaison avant/arrière [-180, 180]
 
+    // Dynamic auto-calibration for background particles
+    if (gyroBaselineX === null) {
+        gyroBaselineX = x;
+        gyroBaselineY = y;
+    } else {
+        // Slowly adjust background baseline towards current posture (0.8% drift)
+        gyroBaselineX = gyroBaselineX * 0.992 + x * 0.008;
+        gyroBaselineY = gyroBaselineY * 0.992 + y * 0.008;
+    }
+
+    let dx = x - gyroBaselineX;
+    let dy = y - gyroBaselineY;
+
     // Limiter les valeurs pour un effet plus subtil
-    if (x > 45) x = 45;
-    if (x < -45) x = -45;
-    
-    // On assume que le smartphone est tenu à 45° en position neutre
-    y = y - 45; 
-    if (y > 45) y = 45;
-    if (y < -45) y = -45;
+    dx = Math.max(-15, Math.min(15, dx));
+    dy = Math.max(-15, Math.min(15, dy));
 
     // Normaliser entre -1 et 1
-    mouseX = x / 45;
-    mouseY = -(y / 45); // Inverser pour correspondre au comportement logique
+    mouseX = dx / 15;
+    mouseY = -(dy / 15); // Inverser pour correspondre au comportement logique
 }
 
 function onWindowResize() {
