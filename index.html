@@ -15,8 +15,6 @@
 
     <div id="canvas-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none;"></div>
     <div class="bg-hearts" id="bg-hearts" style="display: none; pointer-events: none;"></div>
-    <div class="cursor-glow" id="cursor-glow" style="pointer-events: none;"></div>
-    <div class="cursor-arrow" id="cursor-arrow" style="pointer-events: none;">💘</div>
     <div id="cupid-animation" style="pointer-events: none;">👼</div>
     <div class="cupid-arrow" id="cupid-arrow" style="pointer-events: none;">➡️</div>
 
@@ -28,98 +26,92 @@
         <p>Analysez votre discussion Instagram ou WhatsApp pour découvrir votre compatibilité amoureuse.</p>
 
         <div class="container" id="form-container">
-        <!-- Mode Switcher -->
-        <div class="mode-selector" style="position: relative; display: flex; gap: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 5px; border-radius: 12px; box-sizing: border-box;">
-            <div id="modeSliderHighlight" style="position: absolute; width: calc(50% - 5px); height: calc(100% - 10px); top: 5px; left: 5px; background: rgba(255, 71, 126, 0.2); border-radius: 8px; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), background 0.35s; pointer-events: none; z-index: 0;"></div>
-            <button type="button" id="modeStandardBtn" class="mode-tab active" onclick="switchAnalysisMode('standard')" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: #ff477e; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 0.95rem; z-index: 1; position: relative;">💘 Standard</button>
-            <button type="button" id="modeDuelBtn" class="mode-tab" onclick="switchAnalysisMode('duel')" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: #888; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 0.95rem; z-index: 1; position: relative;">⚔️ Mode Duel</button>
-        </div>
-
-        <div class="form-group"
-            style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3);">
-            <label for="apiKeyInput" style="display: flex; justify-content: space-between; align-items: center;">
-                Clé d'API Gemini (Requise) :
-                <div style="display: flex; gap: 5px;">
-                    <button type="button"
-                        onclick="const p = document.getElementById('inline-settings-panel'); if (p.style.maxHeight === '0px' || !p.style.maxHeight) { p.style.maxHeight = '150px'; p.style.opacity = '1'; p.style.marginTop = '15px'; p.style.borderColor = 'rgba(255, 255, 255, 0.1)'; } else { p.style.maxHeight = '0px'; p.style.opacity = '0'; p.style.marginTop = '0px'; p.style.borderColor = 'transparent'; }"
-                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; margin-right: 5px; width: auto; color: #aaa; transition: transform 0.3s, color 0.3s;"
-                        onmouseover="this.style.color='white'; this.style.transform='rotate(45deg)';" onmouseout="this.style.color='#aaa'; this.style.transform='rotate(0deg)';"
-                        title="Paramètres du modèle IA">⚙️</button>
-                    <button type="button"
-                        onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')"
-                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa; transition: color 0.3s;"
-                        onmouseover="this.style.color='white'" onmouseout="this.style.color='#aaa'"
-                        title="Pourquoi utiliser sa propre clé ?">❔</button>
-                </div>
-            </label>
-            <input type="password" id="apiKeyInput" placeholder="AIzaSy..."
-                style="width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: white;">
-            
-            <div id="inline-settings-panel" style="max-height: 0px; opacity: 0; overflow: hidden; margin-top: 0px; padding: 0 15px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid transparent; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
-                <div style="padding: 15px 0;">
-                    <label for="modelSelect" style="color: rgba(255,255,255,0.8); display: block; margin-bottom: 8px; font-size: 0.9rem;">Modèle IA utilisé :</label>
-                    <select id="modelSelect" class="model-select">
-                        <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Le plus performant — Max 20 req/jour)</option>
-                        <option value="gemini-3-flash-preview">Gemini 3 Flash (Équilibré — Max 20 req/jour)</option>
-                        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Le plus rapide — Max 500 req/jour 🚀)</option>
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (Stable — Max 20 req/jour)</option>
-                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Léger — Max 20 req/jour)</option>
-                    </select>
-                </div>
+            <!-- Mode Switcher -->
+            <div class="mode-selector" style="position: relative; display: flex; gap: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 5px; border-radius: 12px; box-sizing: border-box;">
+                <div id="modeSliderHighlight" style="position: absolute; width: calc(50% - 5px); height: calc(100% - 10px); top: 5px; left: 5px; background: rgba(255, 71, 126, 0.2); border-radius: 8px; transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), background 0.35s; pointer-events: none; z-index: 0;"></div>
+                <button type="button" id="modeStandardBtn" class="mode-tab active" onclick="switchAnalysisMode('standard')" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: #ff477e; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 0.95rem; z-index: 1; position: relative;">💘 Standard</button>
+                <button type="button" id="modeDuelBtn" class="mode-tab" onclick="switchAnalysisMode('duel')" style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: #888; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 0.95rem; z-index: 1; position: relative;">⚔️ Mode Versus</button>
             </div>
 
-            <div class="info-note" style="margin-top: 10px;">
-                <a href="https://aistudio.google.com/app/apikey" target="_blank"
-                    style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a>
-                Elle sera sauvegardée sur votre navigateur.
-            </div>
-        </div>
-
-        <!-- Duel Mode Drop Zones (hidden by default) -->
-        <div class="duel-zones-container" id="duel-zones" style="display: none; gap: 15px; margin-bottom: 20px;">
-            <div class="form-group drop-zone duel-a" id="drop-zone-a" style="flex: 1; border-color: rgba(255, 71, 126, 0.4); background: rgba(255, 71, 126, 0.02); margin-bottom: 0;">
-                <label for="fileInputA" style="display: flex; justify-content: space-between; align-items: center; color: #ff477e; font-weight: bold; font-size: 0.9rem;">
-                    Discussion Prétendant A
+            <div class="form-group"
+                style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.3); margin-bottom: 20px;">
+                <label for="apiKeyInput" style="display: flex; justify-content: space-between; align-items: center;">
+                    Clé d'API Gemini (Requise) :
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button"
+                            onclick="const p = document.getElementById('inline-settings-panel'); if (p.style.maxHeight === '0px' || !p.style.maxHeight) { p.style.maxHeight = '150px'; p.style.opacity = '1'; p.style.marginTop = '15px'; p.style.borderColor = 'rgba(255, 255, 255, 0.1)'; } else { p.style.maxHeight = '0px'; p.style.opacity = '0'; p.style.marginTop = '0px'; p.style.borderColor = 'transparent'; }"
+                            style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; margin-right: 5px; width: auto; color: #aaa; transition: transform 0.3s, color 0.3s;"
+                            onmouseover="this.style.color='white'; this.style.transform='rotate(45deg)';" onmouseout="this.style.color='#aaa'; this.style.transform='rotate(0deg)';"
+                            title="Paramètres du modèle IA">⚙️</button>
+                        <button type="button"
+                            onclick="alert('Nous utilisons l\'API Gemini de Google pour analyser votre conversation localement. Entrer votre propre clé permet à l\'application de fonctionner gratuitement sans limites. Votre clé est uniquement sauvegardée dans votre navigateur et n\'est jamais envoyée à nos serveurs.')"
+                            style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa; transition: color 0.3s;"
+                            onmouseover="this.style.color='white'" onmouseout="this.style.color='#aaa'"
+                            title="Pourquoi utiliser sa propre clé ?">❔</button>
+                    </div>
                 </label>
-                <div class="custom-file-wrapper" style="margin-top: 10px;">
-                    <input type="file" id="fileInputA" accept=".html,.txt" multiple class="hidden-file-input" onchange="handleDuelFileSelect('A')">
-                    <label for="fileInputA" class="custom-file-label" style="justify-content: center; padding: 12px; border-color: rgba(255, 71, 126, 0.3);">
-                        <span class="file-btn" style="background: #ff477e; color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-right: 8px;">Sélect.</span>
-                        <span class="file-name" id="fileNameDisplayA" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px;">Aucun fichier 📂</span>
+                <input type="password" id="apiKeyInput" placeholder="AIzaSy..."
+                    style="width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: white;">
+                
+                <div id="inline-settings-panel" style="max-height: 0px; opacity: 0; overflow: hidden; margin-top: 0px; padding: 0 15px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid transparent; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
+                    <div style="padding: 15px 0;">
+                        <label for="modelSelect" style="color: rgba(255,255,255,0.8); display: block; margin-bottom: 8px; font-size: 0.9rem;">Modèle IA utilisé :</label>
+                        <select id="modelSelect" class="model-select">
+                            <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Le plus performant — Max 20 req/jour)</option>
+                            <option value="gemini-3-flash-preview">Gemini 3 Flash (Équilibré — Max 20 req/jour)</option>
+                            <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Le plus rapide — Max 500 req/jour 🚀)</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Stable — Max 20 req/jour)</option>
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Léger — Max 20 req/jour)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="info-note" style="margin-top: 10px;">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank"
+                        style="color: #ffb3c6; text-decoration: underline;">Obtenez votre clé gratuite ici en 2 clics.</a>
+                    Elle sera sauvegardée sur votre navigateur.
+                </div>
+            </div>
+
+            <!-- Versus Mode Drop Zone (hidden by default) -->
+            <div class="form-group drop-zone hide-mode" id="versus-zone" style="border-color: rgba(157, 78, 221, 0.4); background: rgba(157, 78, 221, 0.02); border: 2px dashed rgba(157, 78, 221, 0.4); flex-direction: column; display: flex;">
+                <label for="versusFileInput" style="display: flex; justify-content: space-between; align-items: center; color: #c77dff; font-weight: bold; font-size: 0.95rem; margin-bottom: 10px;">
+                    Discussions Versus (Groupe ou multiples individuels)
+                    <button type="button"
+                        onclick="alert('Sélectionnez ou glissez-déposez le fichier de chat de groupe (WhatsApp/Instagram) OU plusieurs fichiers de chats individuels à comparer. Les fichiers de même nom s\'accumuleront sans s\'écraser !')"
+                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
+                        title="Comment obtenir mon archive ?">❔</button>
+                </label>
+                <div class="custom-file-wrapper">
+                    <input type="file" id="versusFileInput" accept=".html,.txt" multiple class="hidden-file-input" style="display: none;">
+                    <label for="versusFileInput" class="custom-file-label" style="justify-content: center; padding: 15px; border-color: rgba(157, 78, 221, 0.3); border-style: dashed; cursor: pointer; display: flex; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <span class="file-btn" style="background: linear-gradient(45deg, #9d4edd, #c77dff); color: white; padding: 6px 12px; border-radius: 8px; font-weight: bold; margin-right: 10px; font-size: 0.85rem; cursor: pointer;">Sélect. fichiers</span>
+                        <span class="file-name" id="versusFileNameDisplay" style="font-size: 0.85rem; color: #ccc;">Aucun fichier ou glissez-déposez ici 📂</span>
                     </label>
                 </div>
-            </div>
-            <div class="form-group drop-zone duel-b" id="drop-zone-b" style="flex: 1; border-color: rgba(157, 78, 221, 0.4); background: rgba(157, 78, 221, 0.02); margin-bottom: 0;">
-                <label for="fileInputB" style="display: flex; justify-content: space-between; align-items: center; color: #9d4edd; font-weight: bold; font-size: 0.9rem;">
-                    Discussion Prétendant B
-                </label>
-                <div class="custom-file-wrapper" style="margin-top: 10px;">
-                    <input type="file" id="fileInputB" accept=".html,.txt" multiple class="hidden-file-input" onchange="handleDuelFileSelect('B')">
-                    <label for="fileInputB" class="custom-file-label" style="justify-content: center; padding: 12px; border-color: rgba(157, 78, 221, 0.3);">
-                        <span class="file-btn" style="background: #9d4edd; color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-right: 8px;">Sélect.</span>
-                        <span class="file-name" id="fileNameDisplayB" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px;">Aucun fichier 📂</span>
-                    </label>
+                <div id="versus-file-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto;">
+                    <!-- Liste des fichiers ajoutés avec identifiant unique -->
                 </div>
             </div>
-        </div>
 
-        <div class="form-group drop-zone" id="drop-zone">
-            <label for="fileInput" style="display: flex; justify-content: space-between; align-items: center;">
-                Fichiers d'archive : Insta (HTML) ou WhatsApp (TXT)
-                <button type="button"
-                    onclick="alert('Pour Instagram :\nParamètres > Votre activité > Télécharger informations (Format HTML).\n\nPour WhatsApp :\nOuvrez une discussion > Menu > Plus > Exporter discussion (Sans média).\nGlissez le .txt ou .html ici.')"
-                    style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
-                    title="Comment obtenir mon archive ?">❔</button>
-            </label>
-            <div class="custom-file-wrapper">
-                <input type="file" id="fileInput" accept=".html,.txt" multiple class="hidden-file-input">
-                <label for="fileInput" class="custom-file-label" style="justify-content: center; padding: 15px;">
-                    <span class="file-btn">Sélect. fichiers</span>
-                    <span class="file-name" id="fileNameDisplay">Aucun fichier ou glissez-déposez ici 📂</span>
+            <!-- Standard Mode Drop Zone -->
+            <div class="form-group drop-zone show-mode" id="drop-zone" style="border: 2px dashed rgba(255, 71, 126, 0.4); background: rgba(255, 71, 126, 0.02);">
+                <label for="fileInput" style="display: flex; justify-content: space-between; align-items: center; color: #ff477e; font-weight: bold; font-size: 0.95rem; margin-bottom: 10px;">
+                    Fichiers d'archive : Insta (HTML) ou WhatsApp (TXT)
+                    <button type="button"
+                        onclick="alert('Pour Instagram :\nParamètres > Votre activité > Télécharger informations (Format HTML).\n\nPour WhatsApp :\nOuvrez une discussion > Menu > Plus > Exporter discussion (Sans média).\nGlissez le .txt ou .html ici.')"
+                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
+                        title="Comment obtenir mon archive ?">❔</button>
                 </label>
+                <div class="custom-file-wrapper">
+                    <input type="file" id="fileInput" accept=".html,.txt" multiple class="hidden-file-input" style="display: none;">
+                    <label for="fileInput" class="custom-file-label" style="justify-content: center; padding: 15px; cursor: pointer; display: flex; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <span class="file-btn" style="background: linear-gradient(45deg, #ff477e, #ff7096); color: white; padding: 6px 12px; border-radius: 8px; font-weight: bold; margin-right: 10px; font-size: 0.85rem; cursor: pointer;">Sélect. fichiers</span>
+                        <span class="file-name" id="fileNameDisplay" style="font-size: 0.85rem; color: #ccc;">Aucun fichier ou glissez-déposez ici 📂</span>
+                    </label>
+                </div>
+                <div class="info-note" style="margin-top: 10px; font-size: 0.8rem; color: #aaa;">Vous pouvez glisser-déposer plusieurs fichiers d'un coup.</div>
             </div>
-            <div class="info-note">Vous pouvez glisser-déposer plusieurs fichiers d'un coup.</div>
-        </div>
 
         <div class="form-group">
             <label>Objectif d'évolution de la relation :</label>
@@ -364,6 +356,28 @@
         </div>
     </div>
 
+    <!-- Modal Configuration Versus (Participants) -->
+    <div id="versus-setup-modal" class="versus-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+        <div class="versus-modal-content" style="background: rgba(25, 10, 30, 0.95); border: 2px solid rgba(157, 78, 221, 0.3); border-radius: 24px; padding: 30px; max-width: 480px; width: 90%; text-align: center; box-shadow: 0 0 30px rgba(157, 78, 221, 0.3); max-height: 80vh; overflow-y: auto; color: white; box-sizing: border-box;">
+            <div id="versus-step-1">
+                <h3 style="color: #ffd166; font-size: 1.5rem; margin-bottom: 15px; font-weight: bold;">👥 Qui êtes-vous ?</h3>
+                <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 20px;">Sélectionnez votre prénom/nom dans la conversation pour lancer le Versus comparatif.</p>
+                <div id="versus-participants-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding: 5px;">
+                    <!-- Rempli dynamiquement -->
+                </div>
+            </div>
+            <div id="versus-step-2" style="display: none;">
+                <h3 style="color: #4cc9f0; font-size: 1.5rem; margin-bottom: 15px; font-weight: bold;">⚔️ Qui comparer ?</h3>
+                <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 15px;">Choisissez exactement 2 interlocuteurs à comparer par rapport à vous.</p>
+                <div id="versus-candidates-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding: 5px; text-align: left;">
+                    <!-- Rempli dynamiquement -->
+                </div>
+                <button id="versus-btn-validate-candidates" onclick="submitVersusCandidates()" style="width: 100%; margin-top: 20px; padding: 12px; background: linear-gradient(45deg, #00b4d8, #00f5d4); border-radius: 12px; border: none; color: black; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 245, 212, 0.3); font-size: 0.95rem;">Lancer le Versus de Choc ! ⚔️</button>
+            </div>
+            <button onclick="closeVersusSetupModal()" style="background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #aaa; padding: 10px 15px; font-size: 0.85rem; cursor: pointer; margin-top: 20px; width: 100%; font-weight: bold;">Annuler ❌</button>
+        </div>
+    </div>
+
     <script id="workerScript" type="javascript/worker">
 self.addEventListener('message', async (e) => {
     const { filesData, selectedModel, limit } = e.data;
@@ -591,6 +605,8 @@ function stripHtml(html) {
     return html.replace(/<[^>]*>?/gm, '');
 }
     </script>
+    <div class="cursor-glow" id="cursor-glow" style="pointer-events: none;"></div>
+    <div class="cursor-arrow" id="cursor-arrow" style="pointer-events: none;">💘</div>
     <script src="three-bg.js"></script>
     <script src="script.js"></script>
 </body>

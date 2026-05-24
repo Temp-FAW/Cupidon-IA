@@ -123,7 +123,34 @@
             border: 2px dashed rgba(255, 255, 255, 0.2);
             padding: 20px;
             border-radius: 15px;
-            transition: all 0.3s ease;
+            box-sizing: border-box;
+            transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                        transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                        max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                        margin 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                        padding 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+                        border-color 0.4s;
+            overflow: hidden;
+        }
+
+        .drop-zone.hide-mode {
+            max-height: 0 !important;
+            opacity: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            transform: scale(0.95) translateY(-10px);
+            pointer-events: none;
+            border-width: 0 !important;
+            border-color: transparent !important;
+        }
+
+        .drop-zone.show-mode {
+            max-height: 400px !important;
+            opacity: 1 !important;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
         }
 
         .drop-zone.dragover {
@@ -607,7 +634,7 @@
         .cursor-arrow {
             position: fixed;
             pointer-events: none;
-            z-index: 9999;
+            z-index: 9999999 !important;
             font-size: 2rem;
             display: none;
             text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
@@ -619,7 +646,7 @@
             position: fixed;
             pointer-events: none;
             font-size: 1.2rem;
-            z-index: 9998;
+            z-index: 9999998 !important;
             animation: trailFade 1s forwards ease-out;
             margin-left: 5px;
             margin-top: 5px;
@@ -1715,39 +1742,34 @@
             }
         }
 
-        /* --- Mode Duel & Arena Styles --- */
-        .duel-zones-container {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
+        /* --- Mode Versus & Arena Styles --- */
+        #versus-zone {
+            transition: all 0.3s ease;
         }
 
-        @media (max-width: 768px) {
-            .duel-zones-container {
-                flex-direction: column;
-            }
-        }
-
-        .drop-zone.duel-a {
-            border-color: rgba(255, 71, 126, 0.4) !important;
-            background: rgba(255, 71, 126, 0.02) !important;
-        }
-
-        .drop-zone.duel-b {
-            border-color: rgba(157, 78, 221, 0.4) !important;
-            background: rgba(157, 78, 221, 0.02) !important;
-        }
-
-        .drop-zone.duel-a.dragover {
-            border-color: #ff477e !important;
-            background: rgba(255, 71, 126, 0.1) !important;
-            transform: scale(1.02);
-        }
-
-        .drop-zone.duel-b.dragover {
+        #versus-zone.dragover {
             border-color: #9d4edd !important;
             background: rgba(157, 78, 221, 0.1) !important;
-            transform: scale(1.02);
+            transform: scale(1.01);
+            box-shadow: 0 0 20px rgba(157, 78, 221, 0.2);
+        }
+
+        #versus-file-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #versus-file-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+        }
+
+        #versus-file-list::-webkit-scrollbar-thumb {
+            background: rgba(157, 78, 221, 0.4);
+            border-radius: 4px;
+        }
+
+        #versus-file-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(157, 78, 221, 0.6);
         }
 
         .duel-slide {

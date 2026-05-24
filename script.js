@@ -278,6 +278,66 @@ const SoundEngine = {
 
         window.analysisMode = 'standard';
 
+        window.versusFiles = [];
+
+        function renderVersusFileList() {
+            const listContainer = document.getElementById('versus-file-list');
+            const display = document.getElementById('versusFileNameDisplay');
+            if (!listContainer) return;
+
+            listContainer.innerHTML = '';
+            if (window.versusFiles.length === 0) {
+                listContainer.innerHTML = `<div style="color: #888; font-size: 0.8rem; text-align: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">Aucun fichier ajouté. Glissez-les ou sélectionnez-les ! 📂</div>`;
+                if (display) display.textContent = 'Aucun fichier ou glissez-déposez ici 📂';
+                return;
+            }
+
+            if (display) {
+                display.textContent = `${window.versusFiles.length} fichier(s) prêt(s) 👥`;
+            }
+
+            window.versusFiles.forEach(file => {
+                const sizeKb = Math.round(file.fileObj.size / 1024);
+                const fileEl = document.createElement('div');
+                fileEl.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(157, 78, 221, 0.08); border: 1px solid rgba(157, 78, 221, 0.25); border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; margin-bottom: 5px;";
+                fileEl.innerHTML = `
+                    <div style="display: flex; flex-direction: column; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 80%;">
+                        <span style="color: #e0b0ff; font-weight: bold; overflow: hidden; text-overflow: ellipsis;">${file.name}</span>
+                        <span style="color: #888; font-size: 0.7rem;">${sizeKb} KB</span>
+                    </div>
+                    <button onclick="removeVersusFile('${file.id}')" style="background: none; border: none; color: #ff7096; cursor: pointer; font-size: 1.1rem; padding: 0 5px;" title="Retirer ce fichier">🗑️</button>
+                `;
+                listContainer.appendChild(fileEl);
+            });
+        }
+
+        function removeVersusFile(id) {
+            try { SoundEngine.playClick(); } catch(e) {}
+            window.versusFiles = window.versusFiles.filter(f => f.id !== id);
+            renderVersusFileList();
+        }
+
+        async function addVersusFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                // Générer un ID unique basé sur timestamp + random pour éviter les conflits de même nom de fichier !
+                const uniqueId = 'versus_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const content = await file.text();
+                
+                // Éviter d'importer exactement le même objet de fichier s'il a déjà été importé
+                const isAlreadyImported = window.versusFiles.some(f => f.name === file.name && f.fileObj.size === file.size && f.fileObj.lastModified === file.lastModified);
+                if (!isAlreadyImported) {
+                    window.versusFiles.push({
+                        id: uniqueId,
+                        name: file.name,
+                        content: content,
+                        fileObj: file
+                    });
+                }
+            }
+            renderVersusFileList();
+        }
+
         function switchAnalysisMode(mode) {
             try {
                 SoundEngine.playClick();
@@ -286,7 +346,7 @@ const SoundEngine = {
             const standardBtn = document.getElementById('modeStandardBtn');
             const duelBtn = document.getElementById('modeDuelBtn');
             const standardZone = document.getElementById('drop-zone');
-            const duelZones = document.getElementById('duel-zones');
+            const versusZone = document.getElementById('versus-zone');
             const analyzeBtn = document.getElementById('analyzeBtn');
             const sliderHighlight = document.getElementById('modeSliderHighlight');
 
@@ -302,9 +362,15 @@ const SoundEngine = {
                     sliderHighlight.style.background = 'rgba(157, 78, 221, 0.2)';
                 }
 
-                standardZone.style.display = 'none';
-                duelZones.style.display = 'flex';
-                analyzeBtn.innerText = "Lancer le Duel de Choc ! ⚔️";
+                if (standardZone) {
+                    standardZone.classList.remove('show-mode');
+                    standardZone.classList.add('hide-mode');
+                }
+                if (versusZone) {
+                    versusZone.classList.remove('hide-mode');
+                    versusZone.classList.add('show-mode');
+                }
+                analyzeBtn.innerText = "Lancer le Versus de Choc ! ⚔️";
             } else {
                 standardBtn.classList.add('active');
                 standardBtn.style.color = '#ff477e';
@@ -317,26 +383,18 @@ const SoundEngine = {
                     sliderHighlight.style.background = 'rgba(255, 71, 126, 0.2)';
                 }
 
-                standardZone.style.display = 'block';
-                duelZones.style.display = 'none';
+                if (standardZone) {
+                    standardZone.classList.remove('hide-mode');
+                    standardZone.classList.add('show-mode');
+                }
+                if (versusZone) {
+                    versusZone.classList.remove('show-mode');
+                    versusZone.classList.add('hide-mode');
+                }
                 analyzeBtn.innerText = "Lancer l'Analyse IA 🪄";
             }
         }
 
-        function handleDuelFileSelect(relation) {
-            const input = document.getElementById(`fileInput${relation}`);
-            const display = document.getElementById(`fileNameDisplay${relation}`);
-            if (!input || !display) return;
-
-            const files = input.files;
-            if (files.length === 0) {
-                display.textContent = 'Aucun fichier 📂';
-            } else if (files.length === 1) {
-                display.textContent = files[0].name;
-            } else {
-                display.textContent = `${files.length} fichiers`;
-            }
-        }
 
         document.addEventListener('DOMContentLoaded', () => {
             // Service worker PWA
@@ -387,44 +445,26 @@ const SoundEngine = {
                 }, false);
             }
 
-            // Duel Drag and drop
-            const fileInputA = document.getElementById('fileInputA');
-            const fileNameDisplayA = document.getElementById('fileNameDisplayA');
-            const dropZoneA = document.getElementById('drop-zone-a');
+            // Versus Drag and drop
+            const versusFileInput = document.getElementById('versusFileInput');
+            const versusDropZone = document.getElementById('versus-zone');
 
-            const fileInputB = document.getElementById('fileInputB');
-            const fileNameDisplayB = document.getElementById('fileNameDisplayB');
-            const dropZoneB = document.getElementById('drop-zone-b');
+            if (versusDropZone && versusFileInput) {
+                versusFileInput.addEventListener('change', (e) => {
+                    addVersusFiles(e.target.files);
+                });
 
-            if (dropZoneA && fileInputA) {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dropZoneA.addEventListener(eventName, preventDefaults, false);
+                    versusDropZone.addEventListener(eventName, preventDefaults, false);
                 });
                 ['dragenter', 'dragover'].forEach(eventName => {
-                    dropZoneA.addEventListener(eventName, () => dropZoneA.classList.add('dragover'), false);
+                    versusDropZone.addEventListener(eventName, () => versusDropZone.classList.add('dragover'), false);
                 });
                 ['dragleave', 'drop'].forEach(eventName => {
-                    dropZoneA.addEventListener(eventName, () => dropZoneA.classList.remove('dragover'), false);
+                    versusDropZone.addEventListener(eventName, () => versusDropZone.classList.remove('dragover'), false);
                 });
-                dropZoneA.addEventListener('drop', (e) => {
-                    fileInputA.files = e.dataTransfer.files;
-                    handleDuelFileSelect('A');
-                }, false);
-            }
-
-            if (dropZoneB && fileInputB) {
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dropZoneB.addEventListener(eventName, preventDefaults, false);
-                });
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    dropZoneB.addEventListener(eventName, () => dropZoneB.classList.add('dragover'), false);
-                });
-                ['dragleave', 'drop'].forEach(eventName => {
-                    dropZoneB.addEventListener(eventName, () => dropZoneB.classList.remove('dragover'), false);
-                });
-                dropZoneB.addEventListener('drop', (e) => {
-                    fileInputB.files = e.dataTransfer.files;
-                    handleDuelFileSelect('B');
+                versusDropZone.addEventListener('drop', (e) => {
+                    addVersusFiles(e.dataTransfer.files);
                 }, false);
             }
         });
@@ -789,43 +829,59 @@ const SoundEngine = {
             const loadingText = document.getElementById('loadingText');
 
             if (isDuel) {
-                const filesA = document.getElementById('fileInputA').files;
-                const filesB = document.getElementById('fileInputB').files;
-
-                if (filesA.length === 0 || filesB.length === 0) {
-                    alert("Veuillez sélectionner au moins un fichier d'archive pour CHAQUE relation (A et B).");
+                if (window.versusFiles.length === 0) {
+                    alert("Veuillez sélectionner ou glisser au moins un fichier de chat pour lancer le Versus.");
                     return;
                 }
 
                 btn.disabled = true;
                 loading.style.display = 'block';
-                loadingText.innerText = "Lecture des archives du Prétendant A...";
+                loadingText.innerText = "Lecture et parsing de vos fichiers de chat... 📂";
 
                 try {
-                    const filesDataA = [];
-                    for (let i = 0; i < filesA.length; i++) {
-                        const text = await filesA[i].text();
-                        filesDataA.push({ name: filesA[i].name, content: text });
+                    // Trier les fichiers versus pour assurer la chronologie d'extraction
+                    window.versusFiles.sort((a, b) => {
+                        return a.name.localeCompare(b.name, undefined, {numeric: true});
+                    });
+
+                    let combinedChatText = "";
+                    let globalNames = new Set();
+                    let allMessages = [];
+
+                    for (const file of window.versusFiles) {
+                        const extension = file.name.split('.').pop().toLowerCase();
+                        let extractedData;
+                        if (extension === 'html') {
+                            extractedData = extractInstagramHTML(file.content);
+                        } else if (extension === 'txt') {
+                            extractedData = extractWhatsAppTXT(file.content);
+                        } else {
+                            continue;
+                        }
+                        combinedChatText += extractedData.text + "\n";
+                        allMessages = allMessages.concat(extractedData.messages);
+                        extractedData.names.forEach(n => globalNames.add(n));
                     }
 
-                    loadingText.innerText = "Lecture des archives du Prétendant B...";
-                    const filesDataB = [];
-                    for (let i = 0; i < filesB.length; i++) {
-                        const text = await filesB[i].text();
-                        filesDataB.push({ name: filesB[i].name, content: text });
+                    if (allMessages.length === 0) {
+                        throw new Error("Impossible de trouver des messages lisibles dans les fichiers.");
                     }
 
-                    loadingText.innerText = "Traitement des données de la Relation A...";
-                    const result1 = await processFilesData(filesDataA, selectedModel, "Relation A");
+                    const namesArray = Array.from(globalNames);
+                    if (namesArray.length < 2) {
+                        throw new Error("Il doit y avoir au moins 2 participants distincts dans les conversations pour lancer un Versus.");
+                    }
 
-                    loadingText.innerText = "Traitement des données de la Relation B...";
-                    const result2 = await processFilesData(filesDataB, selectedModel, "Relation B");
+                    window.versusAllMessages = allMessages;
+                    window.versusGlobalNames = namesArray;
 
-                    await finalizeDuelAnalysis(result1, result2);
+                    // Masquer le chargement et ouvrir le modal de sélection
+                    loading.style.display = 'none';
+                    openVersusSetupModal(namesArray);
 
                 } catch (error) {
-                    console.error("Erreur dans startAnalysis Duel :", error);
-                    alert("Une erreur est survenue lors du duel :\n" + error.message);
+                    console.error("Erreur dans startAnalysis Versus :", error);
+                    alert("Une erreur est survenue lors de la préparation du Versus :\n" + error.message);
                     loading.style.display = 'none';
                     btn.disabled = false;
                 }
@@ -861,6 +917,161 @@ const SoundEngine = {
                     loading.style.display = 'none';
                     btn.disabled = false;
                 }
+            }
+        }
+
+        // --- Logique du Modal de Configuration Versus (Sans IA) ---
+        function openVersusSetupModal(namesArray) {
+            const modal = document.getElementById('versus-setup-modal');
+            const container1 = document.getElementById('versus-participants-container');
+            if (!modal || !container1) return;
+
+            container1.innerHTML = '';
+            namesArray.forEach(name => {
+                const btn = document.createElement('button');
+                btn.style.cssText = "width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(157, 78, 221, 0.3); border-radius: 12px; color: white; font-weight: bold; cursor: pointer; text-align: center; transition: all 0.25s; font-size: 0.95rem; margin-bottom: 5px;";
+                btn.innerText = name;
+                btn.onmouseover = () => { btn.style.background = 'rgba(157, 78, 221, 0.2)'; btn.style.borderColor = '#c77dff'; };
+                btn.onmouseout = () => { btn.style.background = 'rgba(255,255,255,0.05)'; btn.style.borderColor = 'rgba(157, 78, 221, 0.3)'; };
+                btn.onclick = () => {
+                    try { SoundEngine.playClick(); } catch(e) {}
+                    selectVersusMe(name);
+                };
+                container1.appendChild(btn);
+            });
+
+            document.getElementById('versus-step-1').style.display = 'block';
+            document.getElementById('versus-step-2').style.display = 'none';
+            modal.style.display = 'flex';
+            // Force a reflow and add class/opacity for smooth transitions
+            modal.offsetHeight;
+            modal.style.opacity = '1';
+        }
+
+        function closeVersusSetupModal() {
+            const modal = document.getElementById('versus-setup-modal');
+            if (!modal) return;
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+            
+            document.getElementById('analyzeBtn').disabled = false;
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function selectVersusMe(meName) {
+            window.versusCentralUser = meName;
+            const remaining = window.versusGlobalNames.filter(n => n !== meName);
+
+            if (remaining.length < 2) {
+                alert("Il faut au moins 2 autres interlocuteurs différents pour lancer un versus de comparaison. En mode Standard, vous pouvez analyser une relation unique.");
+                closeVersusSetupModal();
+                return;
+            }
+
+            if (remaining.length === 2) {
+                // Choix évident
+                window.versusPretenderA = remaining[0];
+                window.versusPretenderB = remaining[1];
+                closeVersusSetupModal();
+                launchVersusAnalysis();
+            } else {
+                // Plus de 2 prétendants restants (ex: chat de groupe de 4 personnes ou plus)
+                // Étape 2 : Permettre de choisir les 2 personnes
+                const container2 = document.getElementById('versus-candidates-container');
+                if (!container2) return;
+
+                container2.innerHTML = '';
+                remaining.forEach(name => {
+                    const label = document.createElement('label');
+                    label.style.cssText = "display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; margin-bottom: 8px; cursor: pointer; color: white; transition: all 0.2s;";
+                    label.innerHTML = `
+                        <input type="checkbox" name="versusCandidate" value="${name}" style="transform: scale(1.3); accent-color: #9d4edd; cursor: pointer; margin-right: 5px;">
+                        <span style="font-weight: bold; font-size: 0.95rem;">${name}</span>
+                    `;
+                    label.onmouseover = () => { label.style.background = 'rgba(255,255,255,0.08)'; label.style.borderColor = 'rgba(255,255,255,0.2)'; };
+                    label.onmouseout = () => { label.style.background = 'rgba(255,255,255,0.03)'; label.style.borderColor = 'rgba(255,255,255,0.08)'; };
+                    container2.appendChild(label);
+                });
+
+                document.getElementById('versus-step-1').style.display = 'none';
+                document.getElementById('versus-step-2').style.display = 'block';
+            }
+        }
+
+        function submitVersusCandidates() {
+            try { SoundEngine.playClick(); } catch(e) {}
+            const checked = Array.from(document.querySelectorAll('input[name="versusCandidate"]:checked'));
+            if (checked.length !== 2) {
+                alert("Veuillez sélectionner exactement 2 personnes à comparer.");
+                return;
+            }
+
+            window.versusPretenderA = checked[0].value;
+            window.versusPretenderB = checked[1].value;
+
+            closeVersusSetupModal();
+            launchVersusAnalysis();
+        }
+
+        async function launchVersusAnalysis() {
+            const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loadingText');
+            const btn = document.getElementById('analyzeBtn');
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+            loadingText.innerText = "Calcul et segmentation des historiques de chat... ⚔️";
+
+            try {
+                // Segmenter les messages de window.versusAllMessages
+                const relationAMessages = window.versusAllMessages.filter(m => m.author === window.versusCentralUser || m.author === window.versusPretenderA);
+                const relationBMessages = window.versusAllMessages.filter(m => m.author === window.versusCentralUser || m.author === window.versusPretenderB);
+
+                if (relationAMessages.length === 0 || relationBMessages.length === 0) {
+                    throw new Error("Impossible de diviser les messages. Assurez-vous que les personnes sélectionnées ont échangé des messages.");
+                }
+
+                // Construire result1
+                let textA = relationAMessages.map(m => `${m.author}: ${m.text}`).join('\n') + '\n';
+                if (textA.length > 100000) {
+                    const head = textA.substring(0, 15000);
+                    const tail = textA.substring(textA.length - 85000);
+                    textA = head + "\n\n[...Messages compressés...]\n\n" + tail;
+                }
+                const result1 = {
+                    combinedChatText: textA,
+                    personA: window.versusCentralUser,
+                    personB: window.versusPretenderA,
+                    stats: calculateRawStats(relationAMessages, window.versusCentralUser, window.versusPretenderA),
+                    recentContext: relationAMessages.slice(-50).map(m => `${m.author}: ${m.text}`).join('\n'),
+                    recentMessages: relationAMessages.slice(-5)
+                };
+
+                // Construire result2
+                let textB = relationBMessages.map(m => `${m.author}: ${m.text}`).join('\n') + '\n';
+                if (textB.length > 100000) {
+                    const head = textB.substring(0, 15000);
+                    const tail = textB.substring(textB.length - 85000);
+                    textB = head + "\n\n[...Messages compressés...]\n\n" + tail;
+                }
+                const result2 = {
+                    combinedChatText: textB,
+                    personA: window.versusCentralUser,
+                    personB: window.versusPretenderB,
+                    stats: calculateRawStats(relationBMessages, window.versusCentralUser, window.versusPretenderB),
+                    recentContext: relationBMessages.slice(-50).map(m => `${m.author}: ${m.text}`).join('\n'),
+                    recentMessages: relationBMessages.slice(-5)
+                };
+
+                await finalizeDuelAnalysis(result1, result2);
+
+            } catch (error) {
+                console.error("Erreur dans launchVersusAnalysis :", error);
+                alert("Une erreur est survenue lors du calcul comparatif :\n" + error.message);
+                loading.style.display = 'none';
+                btn.disabled = false;
             }
         }
 
@@ -2904,10 +3115,13 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             const card = e.target.closest('.result-slide > div, .result-slide > .improvement-box, .result-slide > .analysis-box, .versus-container, .verdict-box, .duel-slide > div');
             
             if (activeTiltedCard && activeTiltedCard !== card) {
-                // Reset previously tilted card
-                activeTiltedCard.style.transition = "transform 0.5s ease, box-shadow 0.5s ease";
-                activeTiltedCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
-                activeTiltedCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
+                // Reset previously tilted card avec une transition de retour douce
+                const prevCard = activeTiltedCard;
+                prevCard.style.transition = "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1)";
+                // Forcer un reflow pour s'assurer que le navigateur applique la transition de 0.6s au lieu de 0.1s
+                prevCard.offsetHeight;
+                prevCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+                prevCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
                 activeTiltedCard = null;
             }
 
@@ -2931,7 +3145,8 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 const tiltX = ((centerY - y) / centerY) * maxTilt;
                 const tiltY = ((x - centerX) / centerX) * maxTilt;
                 
-                card.style.transition = "transform 0.1s ease, box-shadow 0.1s ease";
+                // Transition courte de 0.1s cubic-bezier pour un effet amorti extrêmement premium lors du suivi
+                card.style.transition = "transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.15s cubic-bezier(0.25, 1, 0.5, 1)";
                 card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
                 card.style.boxShadow = `${-tiltY * 3}px ${tiltX * 3}px 30px rgba(0,0,0,0.6), 0 20px 40px rgba(0,0,0,0.4)`;
             }
@@ -2939,9 +3154,11 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
 
         document.addEventListener('mouseleave', () => {
             if (activeTiltedCard) {
-                activeTiltedCard.style.transition = "transform 0.5s ease, box-shadow 0.5s ease";
-                activeTiltedCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
-                activeTiltedCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
+                const prevCard = activeTiltedCard;
+                prevCard.style.transition = "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1)";
+                prevCard.offsetHeight; // Forcer le reflow
+                prevCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+                prevCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
                 activeTiltedCard = null;
             }
         });
@@ -2966,8 +3183,8 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             const tiltX = - (deltaBeta / 15) * maxGyroTilt;
             const tiltY = (deltaGamma / 15) * maxGyroTilt;
             
-            // Apply tilt only to card(s) in active slide
-            const activeSlide = document.querySelector('.result-slide.active, .duel-slide.active');
+            // Apply tilt only to card(s) in active slide (ciblage corrigé pour active-slide)
+            const activeSlide = document.querySelector('.result-slide.active-slide, .duel-slide.active-slide');
             if (activeSlide) {
                 const activeCards = activeSlide.querySelectorAll('div, .improvement-box, .analysis-box, .versus-container, .verdict-box');
                 activeCards.forEach(card => {
@@ -2976,15 +3193,15 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                         if (card.style.transformStyle !== "preserve-3d") {
                             card.style.transformStyle = "preserve-3d";
                         }
-                        card.style.transition = "transform 0.2s ease-out";
+                        card.style.transition = "transform 0.25s ease-out";
                         card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
                     }
                 });
             }
         }
 
-        // Request permission on any click interaction for iOS Safari compatibility
-        window.addEventListener('click', function requestGyroPermission() {
+        // Request permission on click or touch for maximum mobile compatibility (iOS/Android)
+        function initGyroscope() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission()
                     .then(permissionState => {
@@ -2995,8 +3212,15 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                     .catch(console.error);
             } else {
                 window.addEventListener('deviceorientation', handleOrientation);
+                // Optionnel: Essayer absolute s'il est pris en charge
+                window.addEventListener('deviceorientationabsolute', handleOrientation);
             }
-            // Remove listener so it only triggers once
-            window.removeEventListener('click', requestGyroPermission);
-        });
+            
+            // Remove listeners once executed
+            window.removeEventListener('click', initGyroscope);
+            window.removeEventListener('touchstart', initGyroscope);
+        }
+
+        window.addEventListener('click', initGyroscope);
+        window.addEventListener('touchstart', initGyroscope);
 
