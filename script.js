@@ -69,6 +69,28 @@ const SoundEngine = {
             }
         };
 
+        // Global reference for active 3D tilted card
+        let activeTiltedCard = null;
+
+        // Premium Return Transition to smoothly reset 3D card tilt
+        function resetCardTilt(card) {
+            if (!card) return;
+            // Apply a smooth 0.6s cubic-bezier return transition inline to guarantee it executes
+            card.style.transition = "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1)";
+            card.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+            card.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
+            
+            const currentCard = card;
+            setTimeout(() => {
+                // Only clear if the card isn't currently being hovered again (i.e. not equal to activeTiltedCard)
+                if (activeTiltedCard !== currentCard) {
+                    currentCard.style.transition = "";
+                    currentCard.style.transform = "";
+                    currentCard.style.boxShadow = "";
+                }
+            }, 600);
+        }
+
         async function shareStory() {
             SoundEngine.playClick();
             const shareBtn = document.getElementById('shareBtn');
@@ -1228,7 +1250,65 @@ const SoundEngine = {
           "surnoms_Central": "surnoms/expressions de ${centralUser}",
           "analyse_duel": "${isRoast ? 'Une comparaison au vitriol des trois personnes.' : "Une analyse comparative globale de 8-12 lignes décrivant l'opposition de style."}",
           "verdict_gagnant": "${isRoast ? 'Le nom exact de celui qui est le plus gros connard (soit ' + pretenderA + ', soit ' + pretenderB + ', soit ' + centralUser + ')' : 'Le nom exact du vainqueur (soit ' + pretenderA + ', soit ' + pretenderB + ', soit Match Nul 💀)'}",
-          "verdict_detail": "${isRoast ? 'La justification démoniaque et drôle expliquant pourquoi cette personne remporte la palme du pire connard.' : "La justification ultime et croustillante expliquant pourquoi c'est le meilleur choix de vie."}"
+          "verdict_detail": "${isRoast ? 'La justification démoniaque et drôle expliquant pourquoi cette personne remporte la palme du pire connard.' : "La justification ultime et croustillante expliquant pourquoi c'est le meilleur choix de vie."}",
+          "archetype_Central": "${isRoast ? 'Archétype acide de communication' : 'Archétype de flirt pour ' + centralUser}",
+          "archetype_Central_description": "Description corrosive de 3-4 lignes de son style de communication global.",
+          "archetype_A": "${isRoast ? 'Archétype acide de communication' : 'Archétype de flirt pour ' + pretenderA}",
+          "archetype_A_description": "Description corrosive de 3-4 lignes de son style de communication.",
+          "archetype_B": "${isRoast ? 'Archétype acide de communication' : 'Archétype de flirt pour ' + pretenderB}",
+          "archetype_B_description": "Description corrosive de 3-4 lignes de son style de communication.",
+          "evolution_temporelle_A": [
+            {
+              "periode": "Phase 1",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé pour la relation A",
+              "citation": "Une citation exacte courte de la discussion A (ex: « Tu me plais »)"
+            },
+            {
+              "periode": "Phase 2",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé",
+              "citation": "Une citation exacte courte de la discussion A"
+            },
+            {
+              "periode": "Phase 3",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé",
+              "citation": "Une citation exacte courte de la discussion A"
+            },
+            {
+              "periode": "Phase 4",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé",
+              "citation": "Une citation exacte courte de la discussion A"
+            }
+          ],
+          "evolution_temporelle_B": [
+            {
+              "periode": "Phase 1",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé pour la relation B",
+              "citation": "Une citation exacte courte de la discussion B (ex: « Salut toi »)"
+            },
+            {
+              "periode": "Phase 2",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé",
+              "citation": "Une citation exacte courte de la discussion B"
+            },
+            {
+              "periode": "Phase 3",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé",
+              "citation": "Une citation exacte courte de la discussion B"
+            },
+            {
+              "periode": "Phase 4",
+              "score_affection": entier entre 0 et 100,
+              "evenement": "Titre court de l\\'événement clé",
+              "citation": "Une citation exacte courte de la discussion B"
+            }
+          ]
         }`;
 
             const response = await fetch(endpoint, {
@@ -1531,9 +1611,322 @@ const SoundEngine = {
                 </div>
             `;
 
-            container.innerHTML = slide1HTML + slide2HTML + slide3HTML + slide4HTML + slide5HTML;
+            // Slide 2.5: Profils Psychologiques (3 personnes)
+            const colorCentral = '#ffd166';
+            const colorA = '#ff477e';
+            const colorB = '#9d4edd';
+
+            const avatars = ['🦊', '🐱', '🦁', '🦉', '🦚', '🐼', '🐨', '🐙', '🦄', '🧜‍♀️', '🥷', '🧙‍♂️', '🧚‍♀️', '🐯', '🐻', '🐰'];
+            const getAvatar = (name) => {
+                let hash = 0;
+                for (let i = 0; name && i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                return avatars[Math.abs(hash) % avatars.length];
+            };
+
+            const slideProfilesHTML = `
+                <div class="result-slide duel-slide" id="duel-slide-profiles">
+                    <div style="width: 100%; max-width: 700px; margin: auto auto !important; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2); max-height: calc(100dvh - 120px); overflow-y: auto; box-sizing: border-box;">
+                        <h3 style="color: #ffd166; margin-bottom: 20px; text-align: center; font-size: 1.5rem;">🎭 Profils Psychologiques & Archétypes</h3>
+                        
+                        <div class="versus-arena" style="display: flex; gap: 15px; justify-content: center; align-items: stretch; width: 100%; margin-top: 10px;">
+                            <!-- Prétendant A -->
+                            <div class="archetype-card stagger-item" style="border: 1px solid ${colorA}40; background: rgba(0,0,0,0.4); border-radius: 14px; padding: 15px; flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;">
+                                <div class="profile-avatar" style="font-size: 2.8rem; margin-bottom: 10px; animation: heartbeat 2s infinite ease-in-out;">${getAvatar(pretenderA)}</div>
+                                <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: ${colorA}; font-weight: bold; margin-bottom: 3px;">${pretenderA}</div>
+                                <h4 style="color: #fff; font-size: 1.05rem; font-weight: bold; margin-bottom: 8px;">${duelData.archetype_A || "Profil Inconnu"}</h4>
+                                <p style="color: #ccc; font-size: 0.8rem; line-height: 1.4; margin: 0;">${duelData.archetype_A_description || "Description non disponible."}</p>
+                            </div>
+                            
+                            <!-- Central User -->
+                            <div class="archetype-card stagger-item" style="border: 1px solid ${colorCentral}40; background: rgba(0,0,0,0.4); border-radius: 14px; padding: 15px; flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;">
+                                <div class="profile-avatar" style="font-size: 2.8rem; margin-bottom: 10px; animation: heartbeat 2s infinite ease-in-out; animation-delay: 0.3s;">${getAvatar(centralUser)}</div>
+                                <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: ${colorCentral}; font-weight: bold; margin-bottom: 3px;">${centralUser}</div>
+                                <h4 style="color: #fff; font-size: 1.05rem; font-weight: bold; margin-bottom: 8px;">${duelData.archetype_Central || "Profil Inconnu"}</h4>
+                                <p style="color: #ccc; font-size: 0.8rem; line-height: 1.4; margin: 0;">${duelData.archetype_Central_description || "Description non disponible."}</p>
+                            </div>
+
+                            <!-- Prétendant B -->
+                            <div class="archetype-card stagger-item" style="border: 1px solid ${colorB}40; background: rgba(0,0,0,0.4); border-radius: 14px; padding: 15px; flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;">
+                                <div class="profile-avatar" style="font-size: 2.8rem; margin-bottom: 10px; animation: heartbeat 2s infinite ease-in-out; animation-delay: 0.6s;">${getAvatar(pretenderB)}</div>
+                                <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: ${colorB}; font-weight: bold; margin-bottom: 3px;">${pretenderB}</div>
+                                <h4 style="color: #fff; font-size: 1.05rem; font-weight: bold; margin-bottom: 8px;">${duelData.archetype_B || "Profil Inconnu"}</h4>
+                                <p style="color: #ccc; font-size: 0.8rem; line-height: 1.4; margin: 0;">${duelData.archetype_B_description || "Description non disponible."}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Slide 4.5: Courbes d'Évolution Comparées
+            const slideEvolutionHTML = `
+                <div class="result-slide duel-slide" id="duel-slide-evolution">
+                    <div style="width: 100%; max-width: 650px; margin: auto auto !important; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2); max-height: calc(100dvh - 120px); overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 15px;">
+                        <h3 style="color: #4cc9f0; margin-bottom: 5px; text-align: center; font-size: 1.5rem;">📉 Évolutions Comparées</h3>
+                        
+                        <!-- SVG Comparative Chart -->
+                        <div class="svg-chart-container" style="width: 100%; position: relative; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px 10px; border: 1px solid rgba(255,255,255,0.05); min-height: 200px; box-sizing: border-box;">
+                            <svg id="evolution-duel-svg" viewBox="0 0 500 200" style="width: 100%; height: auto; display: block; overflow: visible;">
+                                <defs>
+                                    <filter id="neon-glow-duel-pink" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feGaussianBlur stdDeviation="5" result="blur1" />
+                                        <feGaussianBlur stdDeviation="2.5" result="blur2" />
+                                        <feMerge>
+                                            <feMergeNode in="blur1" />
+                                            <feMergeNode in="blur2" />
+                                            <feMergeNode in="SourceGraphic" />
+                                        </feMerge>
+                                    </filter>
+                                    <filter id="neon-glow-duel-purple" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feGaussianBlur stdDeviation="5" result="blur1" />
+                                        <feGaussianBlur stdDeviation="2.5" result="blur2" />
+                                        <feMerge>
+                                            <feMergeNode in="blur1" />
+                                            <feMergeNode in="blur2" />
+                                            <feMergeNode in="SourceGraphic" />
+                                        </feMerge>
+                                    </filter>
+                                </defs>
+                                <!-- Plotted dynamically via JS -->
+                            </svg>
+                        </div>
+                        
+                        <!-- Legend -->
+                        <div style="display: flex; justify-content: center; gap: 20px; font-size: 0.8rem;">
+                            <div style="display: flex; align-items: center; gap: 6px; color: ${colorA}; font-weight: bold;">
+                                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: ${colorA};"></span>
+                                Relation ${pretenderA}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; color: ${colorB}; font-weight: bold;">
+                                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: ${colorB};"></span>
+                                Relation ${pretenderB}
+                            </div>
+                        </div>
+                        
+                        <!-- Interactive Detail Card for Duel -->
+                        <div id="evolution-duel-details-card" class="stagger-item" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 15px; min-height: 90px; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.15); box-sizing: border-box; width: 100%;">
+                            <div style="text-align: center; color: rgba(255,255,255,0.5); font-style: italic; font-size: 0.85rem;">
+                                Cliquez sur un point d'une courbe pour analyser les moments forts... 🔎
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = slide1HTML + slide2HTML + slideProfilesHTML + slide3HTML + slide4HTML + slideEvolutionHTML + slide5HTML;
+
+            // Render versus mode double SVG Curve
+            if (duelData.evolution_temporelle_A && duelData.evolution_temporelle_B) {
+                renderDuelEvolutionSVG(duelData.evolution_temporelle_A, duelData.evolution_temporelle_B, pretenderA, pretenderB, isRoast);
+            }
 
             applyDuelTheme(duelData.score_compat_A, duelData.score_compat_B, winnerName, window.globalGoal);
+        }
+
+        // Global Callback to show Duel Evolution Point Details
+        window.selectDuelEvolutionPoint = function(idx, pointsList, color, personName) {
+            const card = document.getElementById('evolution-duel-details-card');
+            if (!card) return;
+            const pt = pointsList[idx];
+            if (!pt) return;
+            
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(10px)';
+            
+            setTimeout(() => {
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 6px;">
+                        <span style="font-weight: bold; color: ${color}; font-size: 0.95rem;">Relation ${personName} - ${pt.periode}</span>
+                        <span style="background: ${color}20; border: 1px solid ${color}60; color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">🌡️ Affection: ${pt.score_affection}%</span>
+                    </div>
+                    <div style="font-size: 1.05rem; font-weight: bold; color: #fff; margin-bottom: 5px;">🔥 ${pt.evenement || "Moment fort"}</div>
+                    <div style="font-style: italic; color: #ccc; font-size: 0.9rem; line-height: 1.4; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 8px; border-left: 3px solid ${color};">
+                        « ${pt.citation || "Aucun extrait textuel disponible."} »
+                    </div>
+                `;
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 150);
+        };
+
+        function renderDuelEvolutionSVG(pointsA, pointsB, nameA, nameB, isRoast) {
+            const svg = document.getElementById('evolution-duel-svg');
+            if (!svg) return;
+            
+            // Clear except defs
+            const defs = svg.querySelector('defs');
+            svg.innerHTML = '';
+            if (defs) svg.appendChild(defs);
+            
+            if (!pointsA || pointsA.length === 0 || !pointsB || pointsB.length === 0) return;
+            
+            const colorA = isRoast ? '#ff3333' : '#ff477e';
+            const colorB = isRoast ? '#9d4edd' : '#9d4edd';
+            
+            const xStart = 60;
+            const xEnd = 450;
+            const yStart = 150;
+            const yEnd = 30;
+            
+            // Draw background levels
+            const gridLevels = [0, 50, 100];
+            gridLevels.forEach(lvl => {
+                const y = yStart - (lvl / 100) * (yStart - yEnd);
+                
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", xStart - 20);
+                line.setAttribute("y1", y);
+                line.setAttribute("x2", xEnd + 20);
+                line.setAttribute("y2", y);
+                line.setAttribute("stroke", "rgba(255,255,255,0.06)");
+                line.setAttribute("stroke-dasharray", "3 3");
+                svg.appendChild(line);
+                
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", xStart - 35);
+                txt.setAttribute("y", y + 4);
+                txt.setAttribute("fill", "rgba(255,255,255,0.4)");
+                txt.setAttribute("font-size", "8");
+                txt.setAttribute("text-anchor", "middle");
+                txt.textContent = lvl + "%";
+                svg.appendChild(txt);
+            });
+            
+            const getCoords = (points) => {
+                return points.map((pt, idx) => {
+                    const x = xStart + (idx * (xEnd - xStart)) / (points.length - 1);
+                    const score = Math.max(0, Math.min(100, pt.score_affection));
+                    const y = yStart - (score / 100) * (yStart - yEnd);
+                    return { x, y, pt, idx };
+                });
+            };
+            
+            const coordsA = getCoords(pointsA);
+            const coordsB = getCoords(pointsB);
+            
+            const drawCurve = (coords, color, filterId) => {
+                let pathD = "";
+                coords.forEach((coord, idx) => {
+                    if (idx === 0) pathD += `M ${coord.x} ${coord.y}`;
+                    else {
+                        const prev = coords[idx - 1];
+                        const cpX1 = prev.x + (coord.x - prev.x) / 2;
+                        const cpY1 = prev.y;
+                        const cpX2 = prev.x + (coord.x - prev.x) / 2;
+                        const cpY2 = coord.y;
+                        pathD += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${coord.x} ${coord.y}`;
+                    }
+                });
+                
+                // Shadow path
+                const shadow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                shadow.setAttribute("d", pathD);
+                shadow.setAttribute("fill", "none");
+                shadow.setAttribute("stroke", color);
+                shadow.setAttribute("stroke-width", "5");
+                shadow.setAttribute("opacity", "0.35");
+                shadow.setAttribute("filter", `url(#${filterId})`);
+                svg.appendChild(shadow);
+                
+                // Main path
+                const main = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                main.setAttribute("d", pathD);
+                main.setAttribute("fill", "none");
+                main.setAttribute("stroke", "#ffffff");
+                main.setAttribute("stroke-width", "2");
+                svg.appendChild(main);
+            };
+            
+            drawCurve(coordsA, colorA, 'neon-glow-duel-pink');
+            drawCurve(coordsB, colorB, 'neon-glow-duel-purple');
+            
+            // Draw markers for A
+            coordsA.forEach((coord) => {
+                const pulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                pulse.setAttribute("cx", coord.x);
+                pulse.setAttribute("cy", coord.y);
+                pulse.setAttribute("r", "7");
+                pulse.setAttribute("fill", colorA);
+                pulse.setAttribute("opacity", "0.2");
+                pulse.style.cursor = "pointer";
+                svg.appendChild(pulse);
+                
+                const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                inner.setAttribute("cx", coord.x);
+                inner.setAttribute("cy", coord.y);
+                inner.setAttribute("r", "3.5");
+                inner.setAttribute("fill", "#ffffff");
+                inner.setAttribute("stroke", colorA);
+                inner.setAttribute("stroke-width", "2");
+                inner.style.cursor = "pointer";
+                
+                const selectNode = () => {
+                    svg.querySelectorAll("circle[r='5.5']").forEach(c => {
+                        c.setAttribute("r", "3.5");
+                        c.setAttribute("fill", "#ffffff");
+                    });
+                    inner.setAttribute("r", "5.5");
+                    inner.setAttribute("fill", colorA);
+                    window.selectDuelEvolutionPoint(coord.idx, pointsA, colorA, nameA);
+                };
+                
+                inner.onclick = selectNode;
+                pulse.onclick = selectNode;
+                svg.appendChild(inner);
+            });
+            
+            // Draw markers for B
+            coordsB.forEach((coord) => {
+                const pulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                pulse.setAttribute("cx", coord.x);
+                pulse.setAttribute("cy", coord.y);
+                pulse.setAttribute("r", "7");
+                pulse.setAttribute("fill", colorB);
+                pulse.setAttribute("opacity", "0.2");
+                pulse.style.cursor = "pointer";
+                svg.appendChild(pulse);
+                
+                const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                inner.setAttribute("cx", coord.x);
+                inner.setAttribute("cy", coord.y);
+                inner.setAttribute("r", "3.5");
+                inner.setAttribute("fill", "#ffffff");
+                inner.setAttribute("stroke", colorB);
+                inner.setAttribute("stroke-width", "2");
+                inner.style.cursor = "pointer";
+                
+                const selectNode = () => {
+                    svg.querySelectorAll("circle[r='5.5']").forEach(c => {
+                        c.setAttribute("r", "3.5");
+                        c.setAttribute("fill", "#ffffff");
+                    });
+                    inner.setAttribute("r", "5.5");
+                    inner.setAttribute("fill", colorB);
+                    window.selectDuelEvolutionPoint(coord.idx, pointsB, colorB, nameB);
+                };
+                
+                inner.onclick = selectNode;
+                pulse.onclick = selectNode;
+                svg.appendChild(inner);
+            });
+            
+            // X-axis labels
+            coordsA.forEach((coord) => {
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", coord.x);
+                txt.setAttribute("y", yStart + 22);
+                txt.setAttribute("fill", "rgba(255,255,255,0.5)");
+                txt.setAttribute("font-size", "7.5");
+                txt.setAttribute("text-anchor", "middle");
+                const labelText = coord.pt.periode.length > 15 ? coord.pt.periode.substring(0, 13) + "..." : coord.pt.periode;
+                txt.textContent = labelText;
+                svg.appendChild(txt);
+            });
+            
+            // Select first point of A by default
+            setTimeout(() => {
+                const firstA = svg.querySelectorAll("circle")[1];
+                if (firstA) firstA.dispatchEvent(new Event('click'));
+            }, 100);
         }
 
         function applyDuelTheme(scoreA, scoreB, winnerName, goal) {
@@ -1583,7 +1976,10 @@ const SoundEngine = {
                 dot.title = title;
 
                 dot.onclick = () => {
-                    slide.scrollIntoView({ behavior: 'smooth' });
+                    const container = document.getElementById('results-duel');
+                    if (container) {
+                        smoothScrollTo(container, slide.offsetTop, 3200);
+                    }
                 };
                 navContainer.appendChild(dot);
             });
@@ -1606,6 +2002,12 @@ const SoundEngine = {
                         slides.forEach(s => s.classList.remove('active-slide'));
                         activeSlide.classList.add('active-slide');
 
+                        // Reset any currently tilted card on slide change to avoid getting stuck
+                        if (activeTiltedCard) {
+                            resetCardTilt(activeTiltedCard);
+                            activeTiltedCard = null;
+                        }
+
                         const activeIndex = slides.indexOf(activeSlide);
                         const dots = navContainer.querySelectorAll('.nav-dot');
                         dots.forEach((dot, dotIdx) => {
@@ -1618,7 +2020,7 @@ const SoundEngine = {
 
                         const staggerItems = activeSlide.querySelectorAll('.stagger-item');
                         staggerItems.forEach((item, itemIdx) => {
-                            item.style.transitionDelay = `${itemIdx * 120}ms`;
+                            item.style.transitionDelay = `${itemIdx * 150}ms`;
                         });
                     }
                 });
@@ -1629,11 +2031,14 @@ const SoundEngine = {
             });
 
             if (slides.length > 0) {
-                slides[0].scrollIntoView({ behavior: 'auto' });
+                const container = document.getElementById('results-duel');
+                if (container) {
+                    smoothScrollTo(container, slides[0].offsetTop, 0);
+                }
                 slides[0].classList.add('active-slide');
                 const staggerItems = slides[0].querySelectorAll('.stagger-item');
                 staggerItems.forEach((item, itemIdx) => {
-                    item.style.transitionDelay = `${itemIdx * 120}ms`;
+                    item.style.transitionDelay = `${itemIdx * 150}ms`;
                 });
             }
         }
@@ -1946,12 +2351,12 @@ Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
   "conseil_evolution_A": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personA + ' sur son attitude pitoyable, son comportement de soumis ou de forceur lourdaud, dis-lui d\'arrêter de se faire marcher dessus ou de forcer comme un rat mort.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personA + ' devrait faire concrètement.'}",
   "conseil_evolution_B": "${isRoast ? 'TRÈS LONG PARAGRAPHE DE ROAST CRU : Pulvérise ' + chatData.personB + ' sur sa condescendance hautaine, son attitude de reine/roi en carton qui se prend pour quelqu\'un, son désert affectif ou sa froideur de cadavre.' : 'Long paragraphe (6-8 lignes) expliquant très en détail ce que ' + chatData.personB + ' devrait faire concrètement.'}",
   "idees_messages_relance": [
-    "${isRoast ? 'Message ultra-toxique, passif-agressif ou hyper humiliant pour foutre le feu aux poudres.' : 'Idée brillante de message pour relancer.'}",
+    "${isRoast ? "Message ultra-toxique, passif-agressif ou hyper humiliant pour foutre le feu aux poudres." : "Idée brillante de message pour relancer."}",
     "Deuxième idée de message",
     "Troisième idée de message"
   ],
   "badges": [
-    { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ${isRoast ? 'extrêmement rabaissants, humiliants et trashs' : 'personnalisés selon leurs messages'}
+    { "emoji": "...", "titre": "...", "description": "..." } // Génère exactement 3 badges humoristiques ${isRoast ? "extrêmement rabaissants, humiliants et trashs" : "personnalisés selon leurs messages"}
   ],
   "red_flags": [
     { "titre": "...", "description": "..." } // Génère 1 à 3 drapeaux rouges toxiques ou agaçants repérés dans leur comportement.
@@ -1961,12 +2366,37 @@ Renvoie UNIQUEMENT un objet JSON valide avec exactement cette structure :
   ],
   "moments_forts": [
     { "titre": "${isRoast ? 'Ex: Le pire râteau' : 'Ex: Le premier compliment'}", "description": "Brève description" },
-    { "titre": "${isRoast ? 'Ex: Le plus long vent de l\'histoire' : 'Ex: Le fou rire'}", "description": "Brève description" }
+    { "titre": "${isRoast ? "Ex: Le plus long vent de l'histoire" : "Ex: Le fou rire"}", "description": "Brève description" }
   ],
+  "archetype_A": "${isRoast ? "Archétype de communication cynique et corrosif" : "Archétype de flirt (ex: Le Sphinx Silencieux, L'Amant Dramatique)"}",
+  "archetype_A_description": "Description psychologique détaillée de 3-4 lignes de son style de communication.",
+  "archetype_B": "${isRoast ? "Archétype de communication cynique pour B" : "Archétype de flirt pour B"}",
+  "archetype_B_description": "Description psychologique détaillée de 3-4 lignes de son style de communication.",
   "evolution_temporelle": [
-    { "periode": "Début de la relation", "score_affection": entier entre 0 et 100 },
-    { "periode": "Milieu de la relation", "score_affection": entier entre 0 et 100 },
-    { "periode": "Récemment", "score_affection": entier entre 0 et 100 }
+    { 
+      "periode": "Phase 1 (ex: Le premier contact)", 
+      "score_affection": entier entre 0 et 100,
+      "evenement": "Titre court de l\\'événement clé (ex: Le premier compliment)",
+      "citation": "Une citation exacte courte de la discussion (ex: « Tu me manques »)"
+    },
+    { 
+      "periode": "Phase 2", 
+      "score_affection": entier entre 0 et 100,
+      "evenement": "Titre court de l\\'événement clé",
+      "citation": "Une citation exacte courte de la discussion"
+    },
+    { 
+      "periode": "Phase 3", 
+      "score_affection": entier entre 0 et 100,
+      "evenement": "Titre court de l\\'événement clé",
+      "citation": "Une citation exacte courte de la discussion"
+    },
+    { 
+      "periode": "Phase 4 (ex: Récemment)", 
+      "score_affection": entier entre 0 et 100,
+      "evenement": "Titre court de l\\'événement clé",
+      "citation": "Une citation exacte courte de la discussion"
+    }
   ]
 }
 
@@ -2016,6 +2446,43 @@ ${chatData.text}`;
         function displayResults(data, chatData) {
             document.getElementById('label-chance-a').innerText = `Succès si ${chatData.personA} avoue`;
             document.getElementById('label-chance-b').innerText = `Succès si ${chatData.personB} avoue`;
+
+            // Render Archetypes (Standard Mode)
+            const archetypesContainer = document.getElementById('archetypes-container');
+            if (archetypesContainer) {
+                archetypesContainer.innerHTML = '';
+                const isRoast = chatData.goal === 'Roast';
+                const colorA = isRoast ? '#ff3333' : '#ff477e';
+                const colorB = isRoast ? '#9d4edd' : '#00f5d4';
+                
+                const avatars = ['🦊', '🐱', '🦁', '🦉', '🦚', '🐼', '🐨', '🐙', 'Rex', '🦄', '🧜‍♀️', '🥷', '🧙‍♂️', '🧚‍♀️', '🐯', '🐻', '🐰'];
+                const getAvatar = (name) => {
+                    let hash = 0;
+                    for (let i = 0; name && i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                    const avatarsList = ['🦊', '🐱', '🦁', '🦉', '🦚', '🐼', '🐨', '🐙', '🦄', '🧜‍♀️', '🥷', '🧙‍♂️', '🧚‍♀️', '🐯', '🐻', '🐰'];
+                    return avatarsList[Math.abs(hash) % avatarsList.length];
+                };
+
+                // Card for Person A
+                archetypesContainer.innerHTML += `
+                    <div class="archetype-card stagger-item" style="border: 1px solid ${colorA}40; background: rgba(0,0,0,0.3); border-radius: 18px; padding: 25px; flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 250px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); backdrop-filter: blur(12px); box-sizing: border-box;">
+                        <div class="profile-avatar" style="font-size: 3.5rem; margin-bottom: 15px; animation: heartbeat 2s infinite ease-in-out;">${getAvatar(chatData.personA)}</div>
+                        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: ${colorA}; font-weight: bold; margin-bottom: 5px;">${chatData.personA}</div>
+                        <h4 style="color: #fff; font-size: 1.25rem; font-weight: bold; margin-bottom: 12px;">${data.archetype_A || "Profil Inconnu"}</h4>
+                        <p style="color: #ccc; font-size: 0.9rem; line-height: 1.5; margin: 0;">${data.archetype_A_description || "Description non disponible."}</p>
+                    </div>
+                `;
+                
+                // Card for Person B
+                archetypesContainer.innerHTML += `
+                    <div class="archetype-card stagger-item" style="border: 1px solid ${colorB}40; background: rgba(0,0,0,0.3); border-radius: 18px; padding: 25px; flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; min-width: 250px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); backdrop-filter: blur(12px); box-sizing: border-box;">
+                        <div class="profile-avatar" style="font-size: 3.5rem; margin-bottom: 15px; animation: heartbeat 2s infinite ease-in-out; animation-delay: 0.5s;">${getAvatar(chatData.personB)}</div>
+                        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: ${colorB}; font-weight: bold; margin-bottom: 5px;">${chatData.personB}</div>
+                        <h4 style="color: #fff; font-size: 1.25rem; font-weight: bold; margin-bottom: 12px;">${data.archetype_B || "Profil Inconnu"}</h4>
+                        <p style="color: #ccc; font-size: 0.9rem; line-height: 1.5; margin: 0;">${data.archetype_B_description || "Description non disponible."}</p>
+                    </div>
+                `;
+            }
 
             animateValue('res-compat', data.compatibilite);
             animateValue('res-chance-a', data.chance_A_declare);
@@ -2148,34 +2615,10 @@ ${chatData.text}`;
                 }
             }
 
-            // Render Evolution
-            const evolutionContainer = document.getElementById('evolution-container');
-            if (evolutionContainer) {
-                evolutionContainer.innerHTML = '';
-                if (data.evolution_temporelle && data.evolution_temporelle.length > 0) {
-                    data.evolution_temporelle.forEach(evo => {
-                        const barId = `bar-${evo.periode.replace(/[^a-zA-Z0-9]/g, '')}`;
-                        evolutionContainer.innerHTML += `
-                            <div class="evolution-bar-container stagger-item">
-                                <div class="evolution-score">${evo.score_affection}%</div>
-                                <div class="evolution-bar" id="${barId}"></div>
-                                <div class="evolution-label">${evo.periode}</div>
-                            </div>
-                        `;
-                    });
-
-                    // Animate bars
-                    setTimeout(() => {
-                        data.evolution_temporelle.forEach(evo => {
-                            const barId = `bar-${evo.periode.replace(/[^a-zA-Z0-9]/g, '')}`;
-                            const bar = document.getElementById(barId);
-                            if (bar) {
-                                bar.style.height = evo.score_affection + '%';
-                                bar.previousElementSibling.style.opacity = '1';
-                            }
-                        });
-                    }, 100);
-                }
+            // Render Evolution (Standard Mode SVG Curve)
+            const isRoast = chatData.goal === 'Roast';
+            if (data.evolution_temporelle && data.evolution_temporelle.length > 0) {
+                renderStandardEvolutionSVG(data.evolution_temporelle, isRoast);
             }
 
             document.getElementById('whatif-toggle-a').innerText = chatData.personA;
@@ -2184,6 +2627,170 @@ ${chatData.text}`;
             setWhatIfSender('A');
             
             applyTheme(data.compatibilite, chatData.goal);
+        }
+
+        // Global Callback to show Evolution Point Details
+        window.selectEvolutionPoint = function(idx, pointsList, color) {
+            const card = document.getElementById('evolution-details-card');
+            if (!card) return;
+            const pt = pointsList[idx];
+            if (!pt) return;
+            
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(10px)';
+            
+            setTimeout(() => {
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 6px;">
+                        <span style="font-weight: bold; color: ${color}; font-size: 0.95rem;">${pt.periode}</span>
+                        <span style="background: ${color}20; border: 1px solid ${color}60; color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">🌡️ Affection: ${pt.score_affection}%</span>
+                    </div>
+                    <div style="font-size: 1.05rem; font-weight: bold; color: #fff; margin-bottom: 5px;">🔥 ${pt.evenement || "Moment fort"}</div>
+                    <div style="font-style: italic; color: #ccc; font-size: 0.9rem; line-height: 1.4; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 8px; border-left: 3px solid ${color};">
+                        « ${pt.citation || "Aucun extrait textuel disponible."} »
+                    </div>
+                `;
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 150);
+        };
+
+        function renderStandardEvolutionSVG(points, isRoast) {
+            const svg = document.getElementById('evolution-svg');
+            if (!svg) return;
+            
+            // Clear except defs
+            const defs = svg.querySelector('defs');
+            svg.innerHTML = '';
+            if (defs) svg.appendChild(defs);
+            
+            if (!points || points.length === 0) return;
+            
+            const color = isRoast ? '#ff3333' : '#ff477e';
+            const filterId = isRoast ? 'neon-glow-pink' : 'neon-glow-pink';
+            
+            const xStart = 50;
+            const xEnd = 450;
+            const yStart = 150;
+            const yEnd = 30;
+            
+            const coords = points.map((pt, idx) => {
+                const x = xStart + (idx * (xEnd - xStart)) / (points.length - 1);
+                const score = Math.max(0, Math.min(100, pt.score_affection));
+                const y = yStart - (score / 100) * (yStart - yEnd);
+                return { x, y, pt, idx };
+            });
+            
+            // Draw background levels
+            const gridLevels = [0, 50, 100];
+            gridLevels.forEach(lvl => {
+                const y = yStart - (lvl / 100) * (yStart - yEnd);
+                
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", xStart - 20);
+                line.setAttribute("y1", y);
+                line.setAttribute("x2", xEnd + 20);
+                line.setAttribute("y2", y);
+                line.setAttribute("stroke", "rgba(255,255,255,0.06)");
+                line.setAttribute("stroke-dasharray", "3 3");
+                svg.appendChild(line);
+                
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", xStart - 35);
+                txt.setAttribute("y", y + 4);
+                txt.setAttribute("fill", "rgba(255,255,255,0.4)");
+                txt.setAttribute("font-size", "8");
+                txt.setAttribute("text-anchor", "middle");
+                txt.textContent = lvl + "%";
+                svg.appendChild(txt);
+            });
+            
+            // Generate Bezier path string
+            let pathD = "";
+            coords.forEach((coord, idx) => {
+                if (idx === 0) pathD += `M ${coord.x} ${coord.y}`;
+                else {
+                    const prev = coords[idx - 1];
+                    const cpX1 = prev.x + (coord.x - prev.x) / 2;
+                    const cpY1 = prev.y;
+                    const cpX2 = prev.x + (coord.x - prev.x) / 2;
+                    const cpY2 = coord.y;
+                    pathD += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${coord.x} ${coord.y}`;
+                }
+            });
+            
+            // Outer pulse glow line
+            const shadowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            shadowPath.setAttribute("d", pathD);
+            shadowPath.setAttribute("fill", "none");
+            shadowPath.setAttribute("stroke", color);
+            shadowPath.setAttribute("stroke-width", "6");
+            shadowPath.setAttribute("opacity", "0.4");
+            shadowPath.setAttribute("filter", `url(#${filterId})`);
+            svg.appendChild(shadowPath);
+            
+            // Clean white inner path
+            const mainPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            mainPath.setAttribute("d", pathD);
+            mainPath.setAttribute("fill", "none");
+            mainPath.setAttribute("stroke", "#ffffff");
+            mainPath.setAttribute("stroke-width", "2.5");
+            svg.appendChild(mainPath);
+            
+            // Markers
+            coords.forEach((coord) => {
+                // Period label
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", coord.x);
+                txt.setAttribute("y", yStart + 22);
+                txt.setAttribute("fill", "rgba(255,255,255,0.5)");
+                txt.setAttribute("font-size", "7.5");
+                txt.setAttribute("text-anchor", "middle");
+                const periodText = coord.pt.periode.length > 15 ? coord.pt.periode.substring(0, 13) + "..." : coord.pt.periode;
+                txt.textContent = periodText;
+                svg.appendChild(txt);
+                
+                // Pulsing outer hit box
+                const pulseCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                pulseCircle.setAttribute("cx", coord.x);
+                pulseCircle.setAttribute("cy", coord.y);
+                pulseCircle.setAttribute("r", "8");
+                pulseCircle.setAttribute("fill", color);
+                pulseCircle.setAttribute("opacity", "0.25");
+                pulseCircle.setAttribute("filter", `url(#${filterId})`);
+                pulseCircle.style.cursor = "pointer";
+                svg.appendChild(pulseCircle);
+                
+                // Sharp inner node
+                const innerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                innerCircle.setAttribute("cx", coord.x);
+                innerCircle.setAttribute("cy", coord.y);
+                innerCircle.setAttribute("r", "4");
+                innerCircle.setAttribute("fill", "#ffffff");
+                innerCircle.setAttribute("stroke", color);
+                innerCircle.setAttribute("stroke-width", "2");
+                innerCircle.style.cursor = "pointer";
+                
+                const selectNode = () => {
+                    svg.querySelectorAll("circle[r='6.5']").forEach(c => {
+                        c.setAttribute("r", "4");
+                        c.setAttribute("fill", "#ffffff");
+                    });
+                    innerCircle.setAttribute("r", "6.5");
+                    innerCircle.setAttribute("fill", color);
+                    window.selectEvolutionPoint(coord.idx, points, color);
+                };
+                
+                innerCircle.onclick = selectNode;
+                pulseCircle.onclick = selectNode;
+                svg.appendChild(innerCircle);
+            });
+            
+            // Auto click first node after rendering
+            setTimeout(() => {
+                const firstNode = svg.querySelectorAll("circle")[svg.querySelectorAll("circle").length - 1];
+                if (firstNode) firstNode.dispatchEvent(new Event('click'));
+            }, 100);
         }
 
         function applyTheme(score, goal) {
@@ -2763,7 +3370,10 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 dot.title = title;
 
                 dot.onclick = () => {
-                    slide.scrollIntoView({ behavior: 'smooth' });
+                    const container = document.getElementById('results');
+                    if (container) {
+                        smoothScrollTo(container, slide.offsetTop, 3200);
+                    }
                 };
                 navContainer.appendChild(dot);
             });
@@ -2789,6 +3399,12 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                         slides.forEach(s => s.classList.remove('active-slide'));
                         activeSlide.classList.add('active-slide');
 
+                        // Reset any currently tilted card on slide change to avoid getting stuck
+                        if (activeTiltedCard) {
+                            resetCardTilt(activeTiltedCard);
+                            activeTiltedCard = null;
+                        }
+
                         // Mettre à jour l'état de la puce
                         const activeIndex = slides.indexOf(activeSlide);
                         const dots = navContainer.querySelectorAll('.nav-dot');
@@ -2803,7 +3419,7 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                         // Appliquer le fondu en cascade (staggered delay) sur les sous-éléments
                         const staggerItems = activeSlide.querySelectorAll('.stagger-item');
                         staggerItems.forEach((item, itemIdx) => {
-                            item.style.transitionDelay = `${itemIdx * 120}ms`;
+                            item.style.transitionDelay = `${itemIdx * 150}ms`;
                         });
                     }
                 });
@@ -2815,11 +3431,14 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
 
             // Forcer l'affichage initial et le scroll du premier slide
             if (slides.length > 0) {
-                slides[0].scrollIntoView({ behavior: 'auto' });
+                const container = document.getElementById('results');
+                if (container) {
+                    smoothScrollTo(container, slides[0].offsetTop, 0);
+                }
                 slides[0].classList.add('active-slide');
                 const staggerItems = slides[0].querySelectorAll('.stagger-item');
                 staggerItems.forEach((item, itemIdx) => {
-                    item.style.transitionDelay = `${itemIdx * 120}ms`;
+                    item.style.transitionDelay = `${itemIdx * 150}ms`;
                 });
             }
         }
@@ -2829,31 +3448,69 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 SoundEngine.playClick();
             } catch(e) {}
 
-            if (window.presentationObserver) {
-                window.presentationObserver.disconnect();
-                window.presentationObserver = null;
-            }
-            if (window.presentationDuelObserver) {
-                window.presentationDuelObserver.disconnect();
-                window.presentationDuelObserver = null;
+            if (activeTiltedCard) {
+                resetCardTilt(activeTiltedCard);
+                activeTiltedCard = null;
             }
 
-            document.body.classList.remove('results-active', 'results-duel-active');
-            document.getElementById('results').style.display = 'none';
-            document.getElementById('results-duel').style.display = 'none';
-            document.getElementById('raw-stats').style.display = 'none';
+            // Déterminer quel conteneur de résultats est actif
+            const isStandard = document.body.classList.contains('results-active');
+            const isDuel = document.body.classList.contains('results-duel-active');
+            const activeResults = isStandard ? document.getElementById('results') : (isDuel ? document.getElementById('results-duel') : null);
+            const backBtn = document.getElementById('backToFormBtn');
+            const navDots = document.getElementById('results-nav-dots');
 
-            const slides = document.querySelectorAll('.result-slide, .duel-slide');
-            slides.forEach(s => {
-                s.classList.remove('active-slide');
-                s.querySelectorAll('.stagger-item').forEach(item => {
-                    item.style.transitionDelay = '';
+            if (activeResults) {
+                // Ajouter les classes de transition de sortie (fade-out)
+                activeResults.classList.add('results-fade-out');
+                if (backBtn) backBtn.classList.add('fade-out-btn');
+                if (navDots) navDots.classList.add('fade-out-dots');
+            }
+
+            // Attendre la fin de la transition de sortie (400ms) pour permuter l'affichage
+            setTimeout(() => {
+                if (window.presentationObserver) {
+                    window.presentationObserver.disconnect();
+                    window.presentationObserver = null;
+                }
+                if (window.presentationDuelObserver) {
+                    window.presentationDuelObserver.disconnect();
+                    window.presentationDuelObserver = null;
+                }
+
+                document.body.classList.remove('results-active', 'results-duel-active');
+                
+                if (activeResults) {
+                    activeResults.style.display = 'none';
+                    activeResults.classList.remove('results-fade-out');
+                }
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('results-duel').style.display = 'none';
+                document.getElementById('raw-stats').style.display = 'none';
+
+                if (backBtn) backBtn.classList.remove('fade-out-btn');
+                if (navDots) navDots.classList.remove('fade-out-dots');
+
+                const slides = document.querySelectorAll('.result-slide, .duel-slide');
+                slides.forEach(s => {
+                    s.classList.remove('active-slide');
+                    s.querySelectorAll('.stagger-item').forEach(item => {
+                        item.style.transitionDelay = '';
+                    });
                 });
-            });
 
-            document.getElementById('form-container').style.display = 'block';
+                // Réafficher le formulaire avec la classe d'animation de retour
+                const landingWrapper = document.getElementById('landing-wrapper');
+                document.getElementById('form-container').style.display = 'block';
+                if (landingWrapper) {
+                    landingWrapper.classList.add('fade-in-return');
+                    setTimeout(() => {
+                        landingWrapper.classList.remove('fade-in-return');
+                    }, 650);
+                }
 
-            window.scrollTo({ top: 0, behavior: 'instant' });
+                window.scrollTo({ top: 0, behavior: 'instant' });
+            }, 400);
         }
 
         function showBadgeModal(element) {
@@ -3109,19 +3766,12 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
         }
 
         // --- Premium 3D Card Tilt & Gyroscope Parallax Effect ---
-        let activeTiltedCard = null;
 
         document.addEventListener('mousemove', (e) => {
             const card = e.target.closest('.result-slide > div, .result-slide > .improvement-box, .result-slide > .analysis-box, .versus-container, .verdict-box, .duel-slide > div');
             
             if (activeTiltedCard && activeTiltedCard !== card) {
-                // Reset previously tilted card avec une transition de retour douce
-                const prevCard = activeTiltedCard;
-                prevCard.style.transition = "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1)";
-                // Forcer un reflow pour s'assurer que le navigateur applique la transition de 0.6s au lieu de 0.1s
-                prevCard.offsetHeight;
-                prevCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
-                prevCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
+                resetCardTilt(activeTiltedCard);
                 activeTiltedCard = null;
             }
 
@@ -3145,7 +3795,7 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
                 const tiltX = ((centerY - y) / centerY) * maxTilt;
                 const tiltY = ((x - centerX) / centerX) * maxTilt;
                 
-                // Transition courte de 0.1s cubic-bezier pour un effet amorti extrêmement premium lors du suivi
+                // Transition courte de 0.15s pour un suivi réactif
                 card.style.transition = "transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.15s cubic-bezier(0.25, 1, 0.5, 1)";
                 card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
                 card.style.boxShadow = `${-tiltY * 3}px ${tiltX * 3}px 30px rgba(0,0,0,0.6), 0 20px 40px rgba(0,0,0,0.4)`;
@@ -3154,11 +3804,7 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
 
         document.addEventListener('mouseleave', () => {
             if (activeTiltedCard) {
-                const prevCard = activeTiltedCard;
-                prevCard.style.transition = "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1)";
-                prevCard.offsetHeight; // Forcer le reflow
-                prevCard.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
-                prevCard.style.boxShadow = "0 20px 40px rgba(0, 0, 0, 0.4)";
+                resetCardTilt(activeTiltedCard);
                 activeTiltedCard = null;
             }
         });
@@ -3236,4 +3882,38 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
 
         window.addEventListener('click', initGyroscope);
         window.addEventListener('touchstart', initGyroscope);
+
+        // Premium Smooth Scroll utility to slow down dot-triggered slides transitions
+        function smoothScrollTo(container, targetY, duration = 3200) {
+            if (duration === 0) {
+                container.scrollTop = targetY;
+                return;
+            }
+            window.isScrollingAnimation = true;
+            container.style.scrollSnapType = 'none';
+            const startY = container.scrollTop;
+            const difference = targetY - startY;
+            const startTime = performance.now();
+
+            function step(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Quartic ease-in-out curve for ultra-soft, organic floaty glide
+                const easeInOutQuart = progress < 0.5
+                    ? 8 * Math.pow(progress, 4)
+                    : 1 - Math.pow(-2 * progress + 2, 4) / 2;
+                
+                container.scrollTop = startY + difference * easeInOutQuart;
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    // Restore native scroll snap physics once scripting transition completes
+                    container.style.scrollSnapType = 'y mandatory';
+                    window.isScrollingAnimation = false;
+                }
+            }
+            requestAnimationFrame(step);
+        }
 

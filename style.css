@@ -820,8 +820,8 @@
             width: 100vw !important;
             height: 100dvh !important;
             overflow-y: scroll !important;
-            scroll-snap-type: y mandatory !important;
-            scroll-behavior: smooth !important;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: auto !important;
             z-index: 50 !important;
             margin-top: 0 !important;
             padding: 0 !important;
@@ -840,16 +840,7 @@
             padding: 60px 20px;
             position: relative;
             box-sizing: border-box;
-            opacity: 0;
-            transform: translateY(30px) scale(0.98);
-            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
-                        transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        /* Active slide entrance */
-        .result-slide.active-slide {
             opacity: 1;
-            transform: translateY(0) scale(1);
         }
 
         /* Premium glassmorphic cards inside slides */
@@ -860,7 +851,7 @@
             width: 100%;
             max-width: 680px;
             margin: auto auto !important;
-            background: rgba(255, 255, 255, 0.03) !important;
+            background: rgba(20, 10, 35, 0.35) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
             border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -868,7 +859,12 @@
             padding: 35px !important;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
             box-sizing: border-box;
-            transition: box-shadow 0.3s ease;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1) !important;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: filter, backdrop-filter, transform;
         }
 
         .result-slide .improvement-box {
@@ -888,9 +884,9 @@
         /* Staggered Animations */
         .stagger-item {
             opacity: 0;
-            transform: translateY(15px);
-            transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), 
-                        transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            transform: translateY(20px);
+            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
+                        transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .active-slide .stagger-item {
@@ -1001,7 +997,7 @@
             margin: auto auto !important;
             box-sizing: border-box;
             justify-content: flex-start !important;
-            transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+            transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1) !important;
         }
 
         #whatif-chat, #qa-chat {
@@ -1116,15 +1112,7 @@
             padding: 60px 20px;
             position: relative;
             box-sizing: border-box;
-            opacity: 0;
-            transform: translateY(30px) scale(0.98);
-            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
-                        transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        #results-duel .result-slide.active-slide {
             opacity: 1;
-            transform: translateY(0) scale(1);
         }
 
         /* Versus layout cards */
@@ -1145,7 +1133,7 @@
         }
 
         .versus-card {
-            background: rgba(255, 255, 255, 0.03) !important;
+            background: rgba(20, 10, 35, 0.35) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
             border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -1153,7 +1141,12 @@
             padding: 25px !important;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
             box-sizing: border-box;
-            transition: all 0.3s ease;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.6s ease, background 0.6s !important;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: filter, backdrop-filter, transform;
             position: relative;
             overflow: hidden;
         }
@@ -1236,7 +1229,7 @@
             width: 100%;
             max-width: 800px;
             margin: auto auto !important;
-            background: rgba(255, 255, 255, 0.03) !important;
+            background: rgba(20, 10, 35, 0.35) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
             border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -1246,6 +1239,11 @@
             box-sizing: border-box;
             border-top: 3px solid #ffd166 !important;
             border-bottom: 3px solid #ffd166 !important;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: filter, backdrop-filter, transform;
         }
 
         .verdict-title {
@@ -1784,22 +1782,14 @@
             padding: 60px 20px;
             position: relative;
             box-sizing: border-box;
-            opacity: 0;
-            transform: translateY(30px) scale(0.98);
-            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
-                        transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        .duel-slide.active-slide {
             opacity: 1;
-            transform: translateY(0) scale(1);
         }
 
         .duel-slide > div {
             width: 100%;
             max-width: 680px;
             margin: auto auto !important;
-            background: rgba(255, 255, 255, 0.03) !important;
+            background: rgba(20, 10, 35, 0.35) !important;
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
             border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -1807,7 +1797,12 @@
             padding: 35px !important;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
             box-sizing: border-box;
-            transition: box-shadow 0.3s ease;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.6s cubic-bezier(0.25, 1, 0.5, 1) !important;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: filter, backdrop-filter, transform;
         }
 
         .pulse-animation {
@@ -1838,5 +1833,92 @@
                 width: 100% !important;
                 padding: 12px !important;
                 flex: none !important;
+            }
+            .archetypes-arena {
+                flex-direction: column !important;
+                gap: 15px !important;
+                align-items: center !important;
+                width: 100% !important;
+            }
+            .archetype-card {
+                width: 100% !important;
+                flex: none !important;
+                padding: 20px 15px !important;
+            }
+            .svg-chart-container {
+                padding: 10px 5px !important;
+                min-height: 160px !important;
+            }
+        }
+
+        /* Premium Return Transitions (Back Button) */
+        .results-fade-out {
+            opacity: 0 !important;
+            transform: scale(0.98) translateY(20px) !important;
+            transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+        }
+
+        .fade-out-btn,
+        .fade-out-dots {
+            opacity: 0 !important;
+            transition: opacity 0.3s ease !important;
+        }
+
+        .landing-wrapper.fade-in-return {
+            animation: fadeInReturn 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes fadeInReturn {
+            from {
+                opacity: 0;
+                transform: scale(0.97) translateY(-15px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Archetype Card & Animations */
+        .archetype-card {
+            background: rgba(20, 10, 35, 0.35) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 24px !important;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: filter, backdrop-filter, transform;
+            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.5s ease, background 0.5s !important;
+            cursor: pointer;
+        }
+        .archetype-card:hover {
+            transform: translateY(-5px) scale(1.02) !important;
+            border-color: rgba(255, 255, 255, 0.35) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        /* Glowing Pulse for SVG Curve Markers */
+        .pulse-circle-marker {
+            animation: pulse-marker 2s infinite ease-in-out;
+            transform-origin: center;
+        }
+        @keyframes pulse-marker {
+            0%, 100% {
+                opacity: 0.25;
+            }
+            50% {
+                opacity: 0.05;
             }
         }
