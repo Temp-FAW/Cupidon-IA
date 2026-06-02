@@ -3535,6 +3535,42 @@ Renvoie UNIQUEMENT un objet JSON valide contenant ta réponse :
             try { SoundEngine.playClick(); } catch(e) {}
         }
 
+        // --- Fonctions d'Aide (Comment obtenir mon archive ?) ---
+        window.openHelpModal = function(defaultTab = 'instagram') {
+            const modal = document.getElementById('help-modal');
+            if (modal) {
+                modal.classList.add('show');
+                window.switchHelpTab(defaultTab);
+            }
+            try { SoundEngine.playClick(); } catch(e) {}
+        };
+
+        window.closeHelpModal = function() {
+            const modal = document.getElementById('help-modal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+            try { SoundEngine.playClick(); } catch(e) {}
+        };
+
+        window.switchHelpTab = function(tabName) {
+            document.querySelectorAll('.help-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.help-tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tabName === 'instagram') {
+                const btn = document.querySelector('.help-tab-btn:nth-child(1)');
+                if (btn) btn.classList.add('active');
+                const content = document.getElementById('help-content-instagram');
+                if (content) content.classList.add('active');
+            } else if (tabName === 'whatsapp') {
+                const btn = document.querySelector('.help-tab-btn:nth-child(2)');
+                if (btn) btn.classList.add('active');
+                const content = document.getElementById('help-content-whatsapp');
+                if (content) content.classList.add('active');
+            }
+            try { SoundEngine.playClick(); } catch(e) {}
+        };
+
         // --- Fonctions d'Historique d'Analyse ---
         function saveToHistory(aiResult, chatData, stats, recentContext, recentMessages) {
             try {

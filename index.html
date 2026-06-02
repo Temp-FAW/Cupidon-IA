@@ -99,7 +99,7 @@
                 <label for="fileInput" style="display: flex; justify-content: space-between; align-items: center; color: #ff477e; font-weight: bold; font-size: 0.95rem; margin-bottom: 10px;">
                     Fichiers d'archive : Insta (HTML) ou WhatsApp (TXT)
                     <button type="button"
-                        onclick="alert('Pour Instagram :\nParamètres > Votre activité > Télécharger informations (Format HTML).\n\nPour WhatsApp :\nOuvrez une discussion > Menu > Plus > Exporter discussion (Sans média).\nGlissez le .txt ou .html ici.')"
+                        onclick="openHelpModal('instagram')"
                         style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; color: #aaa;"
                         title="Comment obtenir mon archive ?">❔</button>
                 </label>
@@ -395,6 +395,44 @@
                 <!-- Rempli dynamiquement -->
             </div>
             <button class="btn-clear-all" onclick="clearAllHistory()">Vider l'historique 🗑️</button>
+        </div>
+    </div>
+
+    <!-- Modal d'Aide (Comment obtenir mon archive ?) -->
+    <div id="help-modal" class="help-modal" onclick="closeHelpModal()">
+        <div class="help-modal-content" onclick="event.stopPropagation()">
+            <button class="help-modal-close" onclick="closeHelpModal()">&times;</button>
+            <div class="help-modal-title">📖 Comment obtenir vos archives ?</div>
+            
+            <div class="help-tabs">
+                <button type="button" class="help-tab-btn active" onclick="switchHelpTab('instagram')">📸 Instagram</button>
+                <button type="button" class="help-tab-btn" onclick="switchHelpTab('whatsapp')">💬 WhatsApp</button>
+            </div>
+            
+            <div id="help-content-instagram" class="help-tab-content active">
+                <ol style="text-align: left; margin: 15px 0; padding-left: 20px; color: #eee; line-height: 1.6; font-size: 0.95rem;">
+                    <li style="margin-bottom: 10px;">Cliquez sur ce lien direct : <br>
+                        <a href="https://accountscenter.instagram.com/info_and_permissions/dyi/?entry_point=notification" target="_blank" class="help-link" style="color: #ff477e; text-decoration: underline; font-weight: bold; overflow-wrap: break-word; word-break: break-all;">Obtenir mon exportation Instagram 🔗</a>
+                    </li>
+                    <li style="margin-bottom: 10px;">Choisissez <strong>Télécharger ou transférer des informations</strong>.</li>
+                    <li style="margin-bottom: 10px;">Sélectionnez votre profil Instagram, puis choisissez <strong>Certaines de vos informations</strong>.</li>
+                    <li style="margin-bottom: 10px;">Cochez uniquement <strong>Messages</strong> (le reste n'est pas nécessaire).</li>
+                    <li style="margin-bottom: 10px;">Sélectionnez le format <strong>HTML</strong> (très important !) et la qualité média <strong>Basse</strong> pour un téléchargement plus rapide.</li>
+                    <li style="margin-bottom: 10px;">Une fois l'archive reçue et extraite, glissez-déposez le fichier <strong>message_1.html</strong> de votre discussion ici !</li>
+                </ol>
+            </div>
+            
+            <div id="help-content-whatsapp" class="help-tab-content">
+                <ol style="text-align: left; margin: 15px 0; padding-left: 20px; color: #eee; line-height: 1.6; font-size: 0.95rem;">
+                    <li style="margin-bottom: 10px;">Ouvrez la discussion WhatsApp que vous souhaitez analyser sur votre téléphone.</li>
+                    <li style="margin-bottom: 10px;">Appuyez sur le menu (les 3 points en haut à droite sur Android, ou touchez le nom du contact en haut sur iPhone).</li>
+                    <li style="margin-bottom: 10px;">Allez dans <strong>Plus</strong> (ou faites défiler vers le bas) et sélectionnez <strong>Exporter la discussion</strong>.</li>
+                    <li style="margin-bottom: 10px;">Choisissez impérativement <strong>Sans fichier média</strong> pour générer uniquement le fichier texte.</li>
+                    <li style="margin-bottom: 10px;">Envoyez-vous le fichier <strong>.txt</strong> généré et importez-le ici !</li>
+                </ol>
+            </div>
+            
+            <button type="button" onclick="closeHelpModal()" style="background: linear-gradient(45deg, var(--primary), var(--secondary)); border-radius: 12px; margin-top: 10px;">J'ai compris ! 👍</button>
         </div>
     </div>
 
